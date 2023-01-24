@@ -1,3 +1,4 @@
+import {isTruthy} from '@augment-vir/common';
 import Dexie, {Table} from 'dexie';
 
 const defaultUrls = [
@@ -26,17 +27,25 @@ const database = new StoredUrlsDatabase();
 
 export const storedUrls = {
     async set(urls: ReadonlyArray<string>): Promise<void> {
-        await database.storedUrls.bulkPut(
-            urls.map((url, index) => {
-                return {index, url};
-            }),
-        );
+        const cleanedUrls = sanitizeUrls(urls).map((url, index) => {
+            return {index, url};
+        });
+
+        await database.storedUrls.clear();
+        await database.storedUrls.bulkPut(cleanedUrls);
     },
     async get(): Promise<ReadonlyArray<string>> {
         const savedData = await database.storedUrls.toArray();
 
-        console.log({savedData});
+        const imageUrls = savedData.map((entry) => entry.url);
+        const cleanedUrls = sanitizeUrls(imageUrls);
 
-        return savedData.length ? savedData.map((entry) => entry.url) : defaultUrls;
+        return cleanedUrls.length ? cleanedUrls : defaultUrls;
     },
 };
+
+function sanitizeUrls(imageUrls: ReadonlyArray<string>): string[] {
+    return imageUrls
+        .map((imageUrl) => imageUrl.replace(/^"/, '').replace(/"$/, '').trim())
+        .filter(isTruthy);
+}
