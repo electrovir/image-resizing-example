@@ -35,7 +35,8 @@
     "dependencies": {
         "@augment-vir/common": "^11.2.0",
         "dexie": "^3.2.3",
-        "element-vir": "^9.1.2"
+        "element-vir": "^9.1.2",
+        "spa-router-vir": "^2.0.0"
     },
     "devDependencies": {
         "@augment-vir/browser-testing": "^11.2.0",

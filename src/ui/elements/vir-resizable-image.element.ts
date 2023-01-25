@@ -36,7 +36,7 @@ export const VirResizableImage = defineVirElement<{
 
         .frame-constraint {
             position: relative;
-            transition: 200ms;
+            transition: 100ms;
         }
 
         iframe {
