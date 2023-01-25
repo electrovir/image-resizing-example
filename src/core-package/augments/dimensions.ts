@@ -8,13 +8,7 @@ export type MaxDimensions = {
     maxHeight: number;
 };
 
-export enum Orientation {
-    Portrait = 'portrait',
-    Landscape = 'landscape',
-    Square = 'square',
-}
-
-export function maxToDimensions(input: MaxDimensions): Dimensions {
+export function maxToNormalDimensions(input: MaxDimensions): Dimensions {
     return {
         height: input.maxHeight,
         width: input.maxWidth,

@@ -1,5 +1,5 @@
 import {css, defineElementEvent, html, listen} from 'element-vir';
-import {defineVirElement} from '../define-vir-element';
+import {defineVirElement} from './define-vir-element';
 
 export const VirUrlInput = defineVirElement<{urls: ReadonlyArray<string>}>()({
     tagName: 'vir-url-input',

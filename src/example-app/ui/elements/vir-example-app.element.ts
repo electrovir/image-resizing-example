@@ -1,17 +1,16 @@
+import {addPx} from '@augment-vir/browser';
 import {areJsonEqual, wait} from '@augment-vir/common';
 import {assign, AsyncState, asyncState, css, html, listen, renderAsyncState} from 'element-vir';
-import {addPx} from '../../augments/pixel';
-import {MaxDimensions} from '../../data/dimensions';
+import {MaxDimensions, VirResizableImage} from '../../..';
 import {sanitizeUrls, storedUrls} from '../../data/indexed-db/stored-urls';
 import {virRouter} from '../../router/vir-router';
-import {defineVirElementNoInputs} from '../define-vir-element';
-import {VirResizableImage} from './vir-resizable-image.element';
+import {defineVirElementNoInputs} from './define-vir-element';
 import {VirUrlInput} from './vir-url-input.element';
 
 const defaultConstraints: MaxDimensions = {maxWidth: 100, maxHeight: 200};
 
-export const VirApp = defineVirElementNoInputs({
-    tagName: 'vir-app',
+export const VirExampleApp = defineVirElementNoInputs({
+    tagName: 'vir-example-app',
     stateInit: {
         imageUrls: asyncState(storedUrls.get()),
         constraints: undefined as MaxDimensions | undefined,
@@ -135,6 +134,12 @@ export const VirApp = defineVirElementNoInputs({
         }
 
         return html`
+            <a href="https://github.com/electrovir/resizable-image-element">
+                <h1>resizable-image-element</h1>
+            </a>
+            <p>
+                Add more image URLs to the input below:
+            </p>
             <${VirUrlInput}
                 ${assign(VirUrlInput, {
                     urls: ensuredImageUrls,

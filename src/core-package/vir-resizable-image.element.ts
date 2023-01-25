@@ -1,16 +1,14 @@
+import {addPx, loadImage} from '@augment-vir/browser';
 import {collapseWhiteSpace, wait} from '@augment-vir/common';
-import {asyncState, css, html, onDomCreated, renderAsyncState} from 'element-vir';
-import {TemplateResult} from 'lit';
-import {loadImage} from '../../augments/image';
-import {convertTemplateToString} from '../../augments/lit';
-import {addPx} from '../../augments/pixel';
+import {convertTemplateToString} from '@augment-vir/element-vir';
+import {asyncState, css, defineElement, html, onDomCreated, renderAsyncState} from 'element-vir';
+import type {TemplateResult} from 'lit';
 import {
     determineConstraintDimension,
     Dimensions,
     MaxDimensions,
-    maxToDimensions,
-} from '../../data/dimensions';
-import {defineVirElement} from '../define-vir-element';
+    maxToNormalDimensions,
+} from './augments/dimensions';
 
 type ImageData = {
     templateString: string;
@@ -18,12 +16,28 @@ type ImageData = {
     imageUrl: string;
 };
 
+/**
+ * These ping and pong messages are used to prevent race conditions between loading the iframe,
+ * listening to its messages, and posting messages, both inside of the iframe and outside of it.
+ */
 const readyPingMessage = 'ready-ping';
 const readyPongMessage = 'ready-pong';
 
-export const VirResizableImage = defineVirElement<{
+export const VirResizableImage = defineElement<{
     imageUrl: string;
+    /** The size constraints which the image will be resized to fit within. */
     maxDimensions: MaxDimensions;
+    /**
+     * If this is set to true, it forces images _smaller_ than the given dimensions to grow to fit
+     * those dimensions. This can result in pixelated images.
+     */
+    forceImageGrow?: boolean;
+    /**
+     * String of JavaScript that will be interpolated into the iframe source code. It will be used
+     * within a context where the variable "svgElement" will reference the relevant SVG element,
+     * which you can then mutate.
+     */
+    transformSvgJavascript?: string;
 }>()({
     tagName: 'vir-resizable-image',
     stateInit: {
@@ -71,7 +85,7 @@ export const VirResizableImage = defineVirElement<{
                 }
                 const imageDimensions: Dimensions =
                     state.imageDimensions ?? resolvedImageData.dimensions;
-                const maxDimensions: Dimensions = maxToDimensions(inputs.maxDimensions);
+                const maxDimensions: Dimensions = maxToNormalDimensions(inputs.maxDimensions);
 
                 const constraintDimension = determineConstraintDimension({
                     sizableBox: imageDimensions,
@@ -81,7 +95,10 @@ export const VirResizableImage = defineVirElement<{
                 const imageToConstraintRatio =
                     maxDimensions[constraintDimension] / imageDimensions[constraintDimension];
 
-                const resizeRatio = imageToConstraintRatio > 1 ? 1 : imageToConstraintRatio;
+                const resizeRatio =
+                    imageToConstraintRatio > 1 && !inputs.forceImageGrow
+                        ? 1
+                        : imageToConstraintRatio;
 
                 frameConstraintDiv.style.width = addPx(
                     Math.floor(imageDimensions.width * resizeRatio),
@@ -122,7 +139,10 @@ export const VirResizableImage = defineVirElement<{
                             }
                         })}
                         scrolling="no"
-                        srcdoc=${generateIframeDoc(resolvedImageData)}
+                        srcdoc=${generateIframeDoc(
+                            resolvedImageData,
+                            inputs.transformSvgJavascript,
+                        )}
                     ></iframe>
                 `;
             },
@@ -164,7 +184,10 @@ async function loadDimensions(imageUrl: string): Promise<Dimensions> {
     return dimensions;
 }
 
-function generateIframeDoc(imageData: ImageData): string {
+function generateIframeDoc(
+    imageData: ImageData,
+    transformSvgJavascript: string | undefined,
+): string {
     const htmlTemplate = html`
         <!DOCTYPE html>
         <html>
@@ -245,6 +268,8 @@ function generateIframeDoc(imageData: ImageData): string {
                             dimensions: JSON.parse('${JSON.stringify(imageData.dimensions)}'),
                         });
                         */
+
+                        ${transformSvgJavascript ?? ''};
 
                         readyPromise.then(() => {
                             globalThis.postMessage(JSON.stringify({width, height}));

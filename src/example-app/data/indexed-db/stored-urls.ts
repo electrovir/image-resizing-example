@@ -11,7 +11,7 @@ const defaultImageUrls: string[] = [
  * localStorage on localhost.
  */
 
-const databaseName = 'image-resizing-example-storage';
+const databaseName = 'resizable-image-element-storage';
 class StoredUrlsDatabase extends Dexie {
     public storedUrls!: Table<{url: string; index: number}, number>;
 
