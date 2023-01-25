@@ -9,6 +9,7 @@ Trying to get image resizing working in arbitrary situations.
 -   [x] tested in Safari, Chrome, and Firefox
 -   [x] fixes missing attributes on SVG images
 -   [x] easily allows for arbitrary manipulation of SVG code to account for errors in the original SVG code
+-   [x] handles race conditions between loading the image and determining its size
 
 # How to use
 

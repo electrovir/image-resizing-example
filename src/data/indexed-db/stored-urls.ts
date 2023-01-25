@@ -1,4 +1,4 @@
-import {isTruthy} from '@augment-vir/common';
+import {isTruthy, makeWritable} from '@augment-vir/common';
 import Dexie, {Table} from 'dexie';
 import {virRouter} from '../../router/vir-router';
 
@@ -41,18 +41,18 @@ export const storedUrls = {
         const imageUrls = savedData.map((entry) => entry.url);
         const cleanedUrls = sanitizeUrls(imageUrls);
 
-        return cleanedUrls.length ? cleanedUrls : readImageUrlsFromUrl();
+        return readImageUrlsFromUrl(cleanedUrls.length ? cleanedUrls : defaultImageUrls);
     },
 };
 
-function readImageUrlsFromUrl(): string[] {
+function readImageUrlsFromUrl(fallback: ReadonlyArray<string>): string[] {
     try {
         const imageUrls = sanitizeUrls(
             virRouter.getCurrentRawRoutes().search?.imageUrls?.split(',') ?? [],
         );
-        return Array.isArray(imageUrls) && imageUrls.length ? imageUrls : defaultImageUrls;
+        return Array.isArray(imageUrls) && imageUrls.length ? imageUrls : makeWritable(fallback);
     } catch (error) {
-        return defaultImageUrls;
+        return makeWritable(fallback);
     }
 }
 export function sanitizeUrls(imageUrls: ReadonlyArray<string>): string[] {

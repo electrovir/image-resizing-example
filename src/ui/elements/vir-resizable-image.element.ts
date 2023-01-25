@@ -1,4 +1,4 @@
-import {collapseWhiteSpace} from '@augment-vir/common';
+import {collapseWhiteSpace, wait} from '@augment-vir/common';
 import {asyncState, css, html, onDomCreated, renderAsyncState} from 'element-vir';
 import {TemplateResult} from 'lit';
 import {loadImage} from '../../augments/image';
@@ -17,6 +17,9 @@ type ImageData = {
     dimensions: Dimensions;
     imageUrl: string;
 };
+
+const readyPingMessage = 'ready-ping';
+const readyPongMessage = 'ready-pong';
 
 export const VirResizableImage = defineVirElement<{
     imageUrl: string;
@@ -90,23 +93,33 @@ export const VirResizableImage = defineVirElement<{
 
                 return html`
                     <iframe
-                        ${onDomCreated((iframe) => {
-                            (iframe as HTMLIFrameElement).contentWindow!.addEventListener(
-                                'message',
-                                (message) => {
-                                    const data = JSON.parse(message.data);
-                                    const width = Number(data.width);
-                                    const height = Number(data.height);
+                        ${onDomCreated(async (rawIframe) => {
+                            const iframe = rawIframe as HTMLIFrameElement;
+                            let gotPong = false;
+                            iframe.contentWindow!.addEventListener('message', (message) => {
+                                if (message.data === readyPingMessage) {
+                                    return;
+                                } else if (message.data === readyPongMessage) {
+                                    gotPong = true;
+                                    return;
+                                }
 
-                                    if (!isNaN(width) && !isNaN(height)) {
-                                        updateState({
-                                            imageDimensions: {width, height},
-                                        });
-                                    } else {
-                                        console.warn(`Got bad data: ${JSON.stringify(data)}`);
-                                    }
-                                },
-                            );
+                                const data = JSON.parse(message.data);
+                                const width = Number(data.width);
+                                const height = Number(data.height);
+
+                                if (!isNaN(width) && !isNaN(height)) {
+                                    updateState({
+                                        imageDimensions: {width, height},
+                                    });
+                                } else {
+                                    console.warn(`Got bad data: ${JSON.stringify(data)}`);
+                                }
+                            });
+                            while (!gotPong) {
+                                iframe.contentWindow?.postMessage(readyPingMessage);
+                                await wait(100);
+                            }
                         })}
                         scrolling="no"
                         srcdoc=${generateIframeDoc(resolvedImageData)}
@@ -172,6 +185,18 @@ function generateIframeDoc(imageData: ImageData): string {
                         max-width: 100vw;
                     }
                 </style>
+                <script>
+                    let resolve;
+                    const readyPromise = new Promise((innerResolve) => {
+                        resolve = innerResolve;
+                    });
+                    globalThis.addEventListener('message', (event) => {
+                        if (event.data === '${readyPingMessage}') {
+                            resolve();
+                            globalThis.postMessage('${readyPongMessage}');
+                        }
+                    });
+                </script>
             </head>
             <body>
                 ${imageData.templateString}
@@ -210,8 +235,20 @@ function generateIframeDoc(imageData: ImageData): string {
                         svgElement.removeAttribute('height');
                         svgElement.style.removeProperty('width');
                         svgElement.style.removeProperty('height');
+                        /*
+                        console.log({
+                            width,
+                            height,
+                            viewBoxWidth,
+                            viewBoxHeight,
+                            imageUrl: '${imageData.imageUrl}',
+                            dimensions: JSON.parse('${JSON.stringify(imageData.dimensions)}'),
+                        });
+                        */
 
-                        globalThis.postMessage(JSON.stringify({width, height}));
+                        readyPromise.then(() => {
+                            globalThis.postMessage(JSON.stringify({width, height}));
+                        });
                     }
                 </script>
             </body>
