@@ -1,7 +1,6 @@
 import {collapseWhiteSpace} from '@augment-vir/common';
-import {asyncState, css, html, renderAsyncState} from 'element-vir';
+import {asyncState, css, html, onDomCreated, renderAsyncState} from 'element-vir';
 import {TemplateResult} from 'lit';
-import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 import {loadImage} from '../../augments/image';
 import {convertTemplateToString} from '../../augments/lit';
 import {addPx} from '../../augments/pixel';
@@ -16,6 +15,7 @@ import {defineVirElement} from '../define-vir-element';
 type ImageData = {
     templateString: string;
     dimensions: Dimensions;
+    imageUrl: string;
 };
 
 export const VirResizableImage = defineVirElement<{
@@ -25,6 +25,7 @@ export const VirResizableImage = defineVirElement<{
     tagName: 'vir-resizable-image',
     stateInit: {
         imageData: asyncState<ImageData>(),
+        imageDimensions: undefined as Dimensions | undefined,
     },
     styles: css`
         :host {
@@ -35,21 +36,22 @@ export const VirResizableImage = defineVirElement<{
 
         .frame-constraint {
             position: relative;
+            transition: 200ms;
         }
 
         iframe {
             display: block;
             border: none;
-            max-width: 100%;
-            max-height: 100%;
-            width: 100%;
-            height: 100%;
+            max-width: calc(100% + 1px);
+            max-height: calc(100% + 1px);
+            width: calc(100% + 1px);
+            height: calc(100% + 1px);
         }
     `,
     renderCallback: ({state, inputs, updateState, host}) => {
         updateState({
             imageData: {
-                createPromise: () => {
+                createPromise: async () => {
                     return getImageData(inputs.imageUrl);
                 },
                 trigger: inputs.imageUrl,
@@ -64,29 +66,51 @@ export const VirResizableImage = defineVirElement<{
                 if (!(frameConstraintDiv instanceof HTMLElement)) {
                     throw new Error(`Could not find frame constraint div.`);
                 }
-                const maxDimensions = maxToDimensions(inputs.maxDimensions);
+                const imageDimensions: Dimensions =
+                    state.imageDimensions ?? resolvedImageData.dimensions;
+                const maxDimensions: Dimensions = maxToDimensions(inputs.maxDimensions);
 
                 const constraintDimension = determineConstraintDimension({
-                    sizableBox: resolvedImageData.dimensions,
+                    sizableBox: imageDimensions,
                     constraintBox: maxDimensions,
                 });
 
                 const imageToConstraintRatio =
-                    maxDimensions[constraintDimension] /
-                    resolvedImageData.dimensions[constraintDimension];
+                    maxDimensions[constraintDimension] / imageDimensions[constraintDimension];
 
                 const resizeRatio = imageToConstraintRatio > 1 ? 1 : imageToConstraintRatio;
 
                 frameConstraintDiv.style.width = addPx(
-                    resolvedImageData.dimensions.width * resizeRatio,
+                    Math.floor(imageDimensions.width * resizeRatio),
                 );
 
                 frameConstraintDiv.style.height = addPx(
-                    resolvedImageData.dimensions.height * resizeRatio,
+                    Math.floor(imageDimensions.height * resizeRatio),
                 );
 
                 return html`
-                    <iframe src=${generateIframeUrl(resolvedImageData)}></iframe>
+                    <iframe
+                        ${onDomCreated((iframe) => {
+                            (iframe as HTMLIFrameElement).contentWindow!.addEventListener(
+                                'message',
+                                (message) => {
+                                    const data = JSON.parse(message.data);
+                                    const width = Number(data.width);
+                                    const height = Number(data.height);
+
+                                    if (!isNaN(width) && !isNaN(height)) {
+                                        updateState({
+                                            imageDimensions: {width, height},
+                                        });
+                                    } else {
+                                        console.warn(`Got bad data: ${JSON.stringify(data)}`);
+                                    }
+                                },
+                            );
+                        })}
+                        scrolling="no"
+                        srcdoc=${generateIframeDoc(resolvedImageData)}
+                    ></iframe>
                 `;
             },
         ) as string | TemplateResult;
@@ -107,82 +131,94 @@ async function getImageData(imageUrl: string): Promise<ImageData> {
     `;
 
     const templateString = isSvg ? imageText : convertTemplateToString(imageTemplate);
-    const dimensions = await loadDimensions({
-        imageText,
-        imageUrl,
-        isSvg,
-    });
-
-    console.log({imageUrl, dimensions});
+    const dimensions = await loadDimensions(imageUrl);
 
     return {
         templateString,
         dimensions,
+        imageUrl,
     };
 }
 
-async function loadDimensions({
-    imageUrl,
-    isSvg,
-    imageText,
-}: {
-    imageUrl: string;
-    isSvg: boolean;
-    imageText: string;
-}): Promise<Dimensions> {
+async function loadDimensions(imageUrl: string): Promise<Dimensions> {
     const image = await loadImage(imageUrl);
 
-    return {
+    const dimensions: Dimensions = {
         width: image.naturalWidth,
         height: image.naturalHeight,
     };
+
+    return dimensions;
 }
 
-function generateIframeUrl(imageData: ImageData): string {
+function generateIframeDoc(imageData: ImageData): string {
     const htmlTemplate = html`
-        <style>
-            body,
-            html {
-                height: 100%;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-            }
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <style>
+                    body,
+                    html {
+                        height: 100vh;
+                        width: 100vw;
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
 
-            img,
-            svg {
-                max-height: 100vh;
-                max-width: 100vw;
-            }
-        </style>
+                    img,
+                    svg {
+                        max-height: 100vh;
+                        max-width: 100vw;
+                    }
+                </style>
+            </head>
+            <body>
+                ${imageData.templateString}
 
-        ${unsafeHTML(imageData.templateString)}
+                <script>
+                    const svgElement = document.body.querySelector('svg');
 
-        <script>
-            const svgElement = document.body.querySelector('svg');
+                    if (svgElement) {
+                        const viewBox = svgElement.getAttribute('viewBox');
+                        const viewBoxDimensions = viewBox?.match(
+                            /s*\\d+\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s*/,
+                        );
+                        const viewBoxWidth = viewBoxDimensions?.[1];
+                        const viewBoxHeight = viewBoxDimensions?.[2];
+                        const width = Number(
+                            svgElement.getAttribute('width')?.replace(/px$/, '') ?? viewBoxWidth,
+                        );
+                        const height = Number(
+                            svgElement.getAttribute('height')?.replace(/px$/, '') ?? viewBoxHeight,
+                        );
 
-            if (svgElement) {
-                const width = Number(svgElement.getAttribute('width')?.replace(/px$/, ''));
-                const height = Number(svgElement.getAttribute('height')?.replace(/px$/, ''));
+                        if (!isNaN(width) && !isNaN(height) && !viewBox) {
+                            svgElement.setAttribute('viewBox', \`0 0 \${width} \${height}\`);
+                        } else if (isNaN(width) || isNaN(height)) {
+                            console.warn(
+                                \`Failed to retrieve dimensions: \${JSON.stringify({
+                                    width,
+                                    height,
+                                    viewBoxWidth,
+                                    viewBoxHeight,
+                                    imageUrl: '${imageData.imageUrl}',
+                                })}\`,
+                            );
+                        }
+                        svgElement.removeAttribute('width');
+                        svgElement.removeAttribute('height');
+                        svgElement.style.removeProperty('width');
+                        svgElement.style.removeProperty('height');
 
-                if (
-                    !isNaN(width) &&
-                    !isNaN(height) &&
-                    !(svgElement.hasAttribute('viewBox') || svgElement.hasAttribute('viewbox'))
-                ) {
-                    svgElement.setAttribute('viewBox', \`0 0 \${width} \${height}\`);
-                }
-                svgElement.removeAttribute('width');
-                svgElement.removeAttribute('height');
-                svgElement.style.removeProperty('width');
-                svgElement.style.removeProperty('height');
-            }
-        </script>
+                        globalThis.postMessage(JSON.stringify({width, height}));
+                    }
+                </script>
+            </body>
+        </html>
     `;
 
     const htmlString = collapseWhiteSpace(convertTemplateToString(htmlTemplate));
 
-    const dataUrl = `data:text/html,${encodeURIComponent(htmlString)}`;
-
-    return dataUrl;
+    return htmlString;
 }

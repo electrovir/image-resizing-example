@@ -9,7 +9,6 @@ export const VirUrlInput = defineVirElement<{urls: ReadonlyArray<string>}>()({
     styles: css`
         :host {
             display: block;
-            padding: 8px;
         }
 
         textarea {
@@ -53,7 +52,6 @@ export const VirUrlInput = defineVirElement<{urls: ReadonlyArray<string>}>()({
                     const newUrls = textAreaElement.value
                         .split('\n')
                         .map((line) => line.trim().replace(/,+$/, ''));
-                    console.log({newUrls});
                     dispatch(new events.urlsChange(newUrls));
                 })}
                 ${listen('blur', () => {

@@ -44,7 +44,7 @@ export const storedUrls = {
     },
 };
 
-function sanitizeUrls(imageUrls: ReadonlyArray<string>): string[] {
+export function sanitizeUrls(imageUrls: ReadonlyArray<string>): string[] {
     return imageUrls
         .map((imageUrl) => imageUrl.replace(/^"/, '').replace(/"$/, '').trim())
         .filter(isTruthy);
