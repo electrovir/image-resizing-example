@@ -19,6 +19,7 @@ export const VirExampleApp = defineVirElementNoInputs({
             promise: Promise<void> | undefined;
             lastSearch: Record<string, string> | undefined;
         },
+        forceImageGrow: false,
     },
     styles: css`
         :host {
@@ -59,6 +60,12 @@ export const VirExampleApp = defineVirElementNoInputs({
             flex-direction: column;
             font: inherit;
             font-size: 1.4em;
+            gap: 4px;
+        }
+
+        .inline-label {
+            flex-direction: row;
+            align-items: center;
         }
 
         p {
@@ -72,15 +79,15 @@ export const VirExampleApp = defineVirElementNoInputs({
     `,
     renderCallback: ({state, updateState}) => {
         if (!state.constraints) {
+            const searchParams = state.router.getCurrentRawRoutes().search;
+
             updateState({
                 constraints: {
-                    maxWidth:
-                        Number(state.router.getCurrentRawRoutes().search?.width) ||
-                        defaultConstraints.maxWidth,
-                    maxHeight:
-                        Number(state.router.getCurrentRawRoutes().search?.height) ||
-                        defaultConstraints.maxHeight,
+                    maxWidth: Number(searchParams?.width) || defaultConstraints.maxWidth,
+                    maxHeight: Number(searchParams?.height) || defaultConstraints.maxHeight,
                 },
+                forceImageGrow:
+                    searchParams?.full == undefined ? false : searchParams?.full === '1',
             });
         }
 
@@ -94,6 +101,7 @@ export const VirExampleApp = defineVirElementNoInputs({
                 ...state.router.getCurrentRawRoutes().search,
                 width: String(ensuredConstraints.maxWidth),
                 height: String(ensuredConstraints.maxHeight),
+                full: state.forceImageGrow ? '1' : '0',
                 ...(ensuredImageUrls.length ? {imageUrls: ensuredImageUrls.join(',')} : {}),
             };
         }
@@ -160,49 +168,73 @@ export const VirExampleApp = defineVirElementNoInputs({
                     <br>
                     ${addPx(ensuredConstraints.maxWidth)}
                     <br>
-                    <input type="range" max="1000" min="20" .value=${
-                        ensuredConstraints.maxWidth
-                    } ${listen('input', (event) => {
-            const inputElement = event.currentTarget as HTMLInputElement;
-            updateState({
-                constraints: {
-                    ...ensuredConstraints,
-                    maxWidth: Number(inputElement.value) || 0,
-                },
-            });
-        })}/>
+                    <input
+                        type="range"
+                        max="1000"
+                        min="20"
+                        .value=${ensuredConstraints.maxWidth}
+                        ${listen('input', (event) => {
+                            const inputElement = event.currentTarget as HTMLInputElement;
+                            updateState({
+                                constraints: {
+                                    ...ensuredConstraints,
+                                    maxWidth: Number(inputElement.value) || 0,
+                                },
+                            });
+                        })}
+                    />
                 </label>
                 <label>
                     Max Height
                     <br>
                     ${addPx(ensuredConstraints.maxHeight)}
                     <br>
-                    <input type="range" max="1000" min="20" .value=${
-                        ensuredConstraints.maxHeight
-                    } ${listen('input', (event) => {
-            const inputElement = event.currentTarget as HTMLInputElement;
-            updateState({
-                constraints: {
-                    ...ensuredConstraints,
-                    maxHeight: Number(inputElement.value) || 0,
-                },
-            });
-        })}/>
+                    <input
+                        type="range"
+                        max="1000"
+                        min="20"
+                        .value=${ensuredConstraints.maxHeight}
+                        ${listen('input', (event) => {
+                            const inputElement = event.currentTarget as HTMLInputElement;
+                            updateState({
+                                constraints: {
+                                    ...ensuredConstraints,
+                                    maxHeight: Number(inputElement.value) || 0,
+                                },
+                            });
+                        })}
+                    />
+                </label>
+                <label class="inline-label">
+                    <input
+                        type="checkbox"
+                        ?checked=${state.forceImageGrow}
+                        ${listen('input', () => {
+                            updateState({
+                                forceImageGrow: !state.forceImageGrow,
+                            });
+                        })}
+                    />
+                    Force image grow
                 </label>
             </p>
             <div class="images-container">
-                ${renderImages(ensuredConstraints, state.imageUrls)}
+                ${renderImages(ensuredConstraints, state.imageUrls, state.forceImageGrow)}
             </div>
         `;
     },
 });
 
-function renderImages(maxDimensions: MaxDimensions, imageUrls: AsyncState<ReadonlyArray<string>>) {
+function renderImages(
+    maxDimensions: MaxDimensions,
+    imageUrls: AsyncState<ReadonlyArray<string>>,
+    forceImageGrow: boolean,
+) {
     return renderAsyncState(imageUrls, 'Loading...', (resolvedImageUrls) => {
         return sanitizeUrls(resolvedImageUrls).map((imageUrl) => {
             return html`
                 <${VirResizableImage}
-                    ${assign(VirResizableImage, {imageUrl, maxDimensions})}
+                    ${assign(VirResizableImage, {imageUrl, maxDimensions, forceImageGrow})}
                 ></${VirResizableImage}>
             `;
         });
