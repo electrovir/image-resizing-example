@@ -1,3 +1,4 @@
+import {areJsonEqual, wait} from '@augment-vir/common';
 import {assign, AsyncState, asyncState, css, html, listen, renderAsyncState} from 'element-vir';
 import {addPx} from '../../augments/pixel';
 import {MaxDimensions} from '../../data/dimensions';
@@ -15,6 +16,10 @@ export const VirApp = defineVirElementNoInputs({
         imageUrls: asyncState(storedUrls.get()),
         constraints: undefined as MaxDimensions | undefined,
         router: virRouter,
+        urlUpdateDebounce: {promise: undefined, lastSearch: undefined} as {
+            promise: Promise<void> | undefined;
+            lastSearch: Record<string, string> | undefined;
+        },
     },
     styles: css`
         :host {
@@ -85,14 +90,50 @@ export const VirApp = defineVirElementNoInputs({
             ? state.imageUrls
             : [];
 
-        state.router.setRoutes({
-            search: {
+        function generateNewSearch() {
+            return {
                 ...state.router.getCurrentRawRoutes().search,
                 width: String(ensuredConstraints.maxWidth),
                 height: String(ensuredConstraints.maxHeight),
                 ...(ensuredImageUrls.length ? {imageUrls: ensuredImageUrls.join(',')} : {}),
-            },
-        });
+            };
+        }
+
+        if (
+            !state.urlUpdateDebounce.promise &&
+            (!state.urlUpdateDebounce.lastSearch ||
+                !areJsonEqual(generateNewSearch(), state.urlUpdateDebounce.lastSearch))
+        ) {
+            updateState({
+                urlUpdateDebounce: {
+                    promise: wait(1000).then(() => {
+                        const newSearch = generateNewSearch();
+
+                        try {
+                            console.log('updating');
+                            // throttle the url updates so we don't get browser warnings:
+                            // SecurityError: Attempt to use history.replaceState() more than 100 times per 30 seconds
+                            state.router.setRoutes(
+                                {
+                                    search: newSearch,
+                                },
+                                true,
+                            );
+                        } catch (error) {
+                            console.warn(error);
+                        }
+
+                        updateState({
+                            urlUpdateDebounce: {
+                                promise: undefined,
+                                lastSearch: newSearch,
+                            },
+                        });
+                    }),
+                    lastSearch: generateNewSearch(),
+                },
+            });
+        }
 
         return html`
             <${VirUrlInput}
