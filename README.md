@@ -13,6 +13,10 @@ Exports a native web element, `VirResizableImage` (for use in [`element-vir`](ht
 -   [x] allows for arbitrary manipulation of SVG code to account for errors in the original SVG code
 -   [x] handles race conditions between loading the image and determining its size
 
+## Example
+
+[https://electrovir.github.io/resizable-image-element](https://electrovir.github.io/resizable-image-element/)
+
 ## Usage
 
 ```bash
