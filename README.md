@@ -36,9 +36,13 @@ export function createTemplate() {
         <${VirResizableImage}
             ${assign(VirResizableImage, {
                 imageUrl: 'https://example.com/my-image-url',
-                maxDimensions: {
-                    maxHeight: 100,
-                    maxWidth: 200,
+                max: {
+                    height: 300,
+                    width: 600,
+                },
+                min: {
+                    height: 100,
+                    width: 200,
                 },
             })}
         ></${VirResizableImage}>

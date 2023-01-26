@@ -3,12 +3,7 @@ import {collapseWhiteSpace, wait} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {asyncState, css, defineElement, html, onDomCreated, renderAsyncState} from 'element-vir';
 import type {TemplateResult} from 'lit';
-import {
-    determineConstraintDimension,
-    Dimensions,
-    MaxDimensions,
-    maxToNormalDimensions,
-} from './augments/dimensions';
+import {clampDimensions, Dimensions, scaleToConstraints} from './augments/dimensions';
 
 type ImageData = {
     templateString: string;
@@ -25,19 +20,16 @@ const readyPongMessage = 'ready-pong';
 
 export const VirResizableImage = defineElement<{
     imageUrl: string;
-    /** The size constraints which the image will be resized to fit within. */
-    maxDimensions: MaxDimensions;
-    /**
-     * If this is set to true, it forces images _smaller_ than the given dimensions to grow to fit
-     * those dimensions. This can result in pixelated images.
-     */
-    forceImageGrow?: boolean;
+    /** The max image size constraints which the image will be resized to fit within. */
+    max?: Dimensions | undefined;
+    /** The min image size constraints which the image will be resized to fit within. */
+    min?: Dimensions | undefined;
     /**
      * String of JavaScript that will be interpolated into the iframe source code. It will be used
      * within a context where the variable "svgElement" will reference the relevant SVG element,
      * which you can then mutate.
      */
-    transformSvgJavascript?: string;
+    transformSvgJavascript?: string | undefined;
 }>()({
     tagName: 'vir-resizable-image',
     stateInit: {
@@ -46,9 +38,24 @@ export const VirResizableImage = defineElement<{
     },
     styles: css`
         :host {
-            display: block;
             position: relative;
+            box-sizing: content-box;
+            display: flex;
+            justify-content: center;
             overflow: hidden;
+        }
+
+        .click-cover {
+            position: absolute;
+            height: 100%;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        * {
+            flex-shrink: 0;
         }
 
         .frame-constraint {
@@ -77,36 +84,34 @@ export const VirResizableImage = defineElement<{
 
         const iframeTemplate = renderAsyncState(
             state.imageData,
-            'Loading...',
+            html`
+                <slot name="loading">Loading...</slot>
+            `,
             (resolvedImageData) => {
                 const frameConstraintDiv = host.shadowRoot.querySelector('.frame-constraint');
                 if (!(frameConstraintDiv instanceof HTMLElement)) {
                     throw new Error(`Could not find frame constraint div.`);
                 }
+
                 const imageDimensions: Dimensions =
                     state.imageDimensions ?? resolvedImageData.dimensions;
-                const maxDimensions: Dimensions = maxToNormalDimensions(inputs.maxDimensions);
 
-                const constraintDimension = determineConstraintDimension({
-                    sizableBox: imageDimensions,
-                    constraintBox: maxDimensions,
+                const newImageSize: Dimensions = scaleToConstraints({
+                    min: inputs.min,
+                    max: inputs.max,
+                    box: imageDimensions,
                 });
 
-                const imageToConstraintRatio =
-                    maxDimensions[constraintDimension] / imageDimensions[constraintDimension];
+                frameConstraintDiv.style.width = addPx(Math.floor(newImageSize.width));
+                frameConstraintDiv.style.height = addPx(Math.floor(newImageSize.height));
 
-                const resizeRatio =
-                    imageToConstraintRatio > 1 && !inputs.forceImageGrow
-                        ? 1
-                        : imageToConstraintRatio;
-
-                frameConstraintDiv.style.width = addPx(
-                    Math.floor(imageDimensions.width * resizeRatio),
-                );
-
-                frameConstraintDiv.style.height = addPx(
-                    Math.floor(imageDimensions.height * resizeRatio),
-                );
+                const hostSize: Dimensions = clampDimensions({
+                    min: inputs.min,
+                    max: inputs.max,
+                    box: newImageSize,
+                });
+                host.style.width = addPx(hostSize.width);
+                host.style.height = addPx(hostSize.height);
 
                 return html`
                     <iframe
@@ -149,7 +154,11 @@ export const VirResizableImage = defineElement<{
         ) as string | TemplateResult;
 
         return html`
-            <div class="frame-constraint">${iframeTemplate}</div>
+            <div class="frame-constraint">
+                ${iframeTemplate}
+                <slot name="loaded"></slot>
+            </div>
+            <div class="click-cover"></div>
         `;
     },
 });

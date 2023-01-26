@@ -1,25 +1,35 @@
 import {addPx} from '@augment-vir/browser';
-import {areJsonEqual, wait} from '@augment-vir/common';
+import {areJsonEqual, capitalizeFirstLetter, wait} from '@augment-vir/common';
 import {assign, AsyncState, asyncState, css, html, listen, renderAsyncState} from 'element-vir';
-import {MaxDimensions, VirResizableImage} from '../../..';
+import {Dimensions, VirResizableImage} from '../../..';
 import {sanitizeUrls, storedUrls} from '../../data/indexed-db/stored-urls';
 import {virRouter} from '../../router/vir-router';
 import {defineVirElementNoInputs} from './define-vir-element';
 import {VirUrlInput} from './vir-url-input.element';
 
-const defaultConstraints: MaxDimensions = {maxWidth: 100, maxHeight: 200};
+type MinAndMaxDimensions = {min: Dimensions; max: Dimensions};
+
+const defaultConstraints: MinAndMaxDimensions = {
+    max: {
+        width: 300,
+        height: 600,
+    },
+    min: {
+        width: 300,
+        height: 150,
+    },
+};
 
 export const VirExampleApp = defineVirElementNoInputs({
     tagName: 'vir-example-app',
     stateInit: {
         imageUrls: asyncState(storedUrls.get()),
-        constraints: undefined as MaxDimensions | undefined,
+        constraints: undefined as MinAndMaxDimensions | undefined,
         router: virRouter,
         urlUpdateDebounce: {promise: undefined, lastSearch: undefined} as {
             promise: Promise<void> | undefined;
             lastSearch: Record<string, string> | undefined;
         },
-        forceImageGrow: false,
     },
     styles: css`
         :host {
@@ -38,13 +48,13 @@ export const VirExampleApp = defineVirElementNoInputs({
         }
 
         ${VirResizableImage} {
-            border: 5px solid red;
+            border: 1px solid blue;
             background-color: rgb(241, 241, 241);
             border-radius: 8px;
+            flex-shrink: 0;
         }
 
         .images-container {
-            align-items: center;
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
@@ -70,11 +80,49 @@ export const VirExampleApp = defineVirElementNoInputs({
 
         p {
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .constraint-controls {
+            display: flex;
             gap: 8px;
         }
 
         input {
             font: inherit;
+        }
+
+        .constraint-wrapper {
+            border: 2px solid;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .constraint-wrapper.max {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-color: red;
+        }
+
+        .constraint-wrapper.min {
+            border-color: lime;
+        }
+
+        .constraint-wrapper .min-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .constraint-wrapper a {
+            cursor: pointer;
         }
     `,
     renderCallback: ({state, updateState}) => {
@@ -83,11 +131,15 @@ export const VirExampleApp = defineVirElementNoInputs({
 
             updateState({
                 constraints: {
-                    maxWidth: Number(searchParams?.width) || defaultConstraints.maxWidth,
-                    maxHeight: Number(searchParams?.height) || defaultConstraints.maxHeight,
+                    min: {
+                        width: Number(searchParams?.minW) || defaultConstraints.min.width,
+                        height: Number(searchParams?.minH) || defaultConstraints.min.height,
+                    },
+                    max: {
+                        width: Number(searchParams?.maxW) || defaultConstraints.max.width,
+                        height: Number(searchParams?.maxH) || defaultConstraints.max.height,
+                    },
                 },
-                forceImageGrow:
-                    searchParams?.full == undefined ? false : searchParams?.full === '1',
             });
         }
 
@@ -99,11 +151,28 @@ export const VirExampleApp = defineVirElementNoInputs({
         function generateNewSearch() {
             return {
                 ...state.router.getCurrentRawRoutes().search,
-                width: String(ensuredConstraints.maxWidth),
-                height: String(ensuredConstraints.maxHeight),
-                full: state.forceImageGrow ? '1' : '0',
+                minW: String(ensuredConstraints.min.width),
+                minH: String(ensuredConstraints.min.height),
+                maxW: String(ensuredConstraints.max.width),
+                maxH: String(ensuredConstraints.max.height),
                 ...(ensuredImageUrls.length ? {imageUrls: ensuredImageUrls.join(',')} : {}),
             };
+        }
+
+        function updateConstraints(
+            inputElement: HTMLInputElement,
+            boundary: 'min' | 'max',
+            axis: keyof Dimensions,
+        ) {
+            updateState({
+                constraints: {
+                    ...ensuredConstraints,
+                    [boundary]: {
+                        ...ensuredConstraints[boundary],
+                        [axis]: Number(inputElement.value) || 0,
+                    },
+                },
+            });
         }
 
         if (
@@ -163,79 +232,103 @@ export const VirExampleApp = defineVirElementNoInputs({
                 })}
             ></${VirUrlInput}>
             <p>
-                <label>
-                    Max Width
-                    <br>
-                    ${addPx(ensuredConstraints.maxWidth)}
-                    <br>
-                    <input
-                        type="range"
-                        max="1000"
-                        min="20"
-                        .value=${ensuredConstraints.maxWidth}
-                        ${listen('input', (event) => {
-                            const inputElement = event.currentTarget as HTMLInputElement;
-                            updateState({
-                                constraints: {
-                                    ...ensuredConstraints,
-                                    maxWidth: Number(inputElement.value) || 0,
-                                },
-                            });
-                        })}
-                    />
-                </label>
-                <label>
-                    Max Height
-                    <br>
-                    ${addPx(ensuredConstraints.maxHeight)}
-                    <br>
-                    <input
-                        type="range"
-                        max="1000"
-                        min="20"
-                        .value=${ensuredConstraints.maxHeight}
-                        ${listen('input', (event) => {
-                            const inputElement = event.currentTarget as HTMLInputElement;
-                            updateState({
-                                constraints: {
-                                    ...ensuredConstraints,
-                                    maxHeight: Number(inputElement.value) || 0,
-                                },
-                            });
-                        })}
-                    />
-                </label>
-                <label class="inline-label">
-                    <input
-                        type="checkbox"
-                        ?checked=${state.forceImageGrow}
-                        ${listen('input', () => {
-                            updateState({
-                                forceImageGrow: !state.forceImageGrow,
-                            });
-                        })}
-                    />
-                    Force image grow
-                </label>
+                ${(
+                    [
+                        'min',
+                        'max',
+                    ] as const
+                ).map((boundary) => {
+                    const inputs = (
+                        [
+                            'height',
+                            'width',
+                        ] as const
+                    ).map((axis) => {
+                        const label = [
+                            capitalizeFirstLetter(boundary),
+                            capitalizeFirstLetter(axis),
+                        ].join(' ');
+                        const value = ensuredConstraints[boundary][axis];
+
+                        return html`
+                            <label>
+                                ${label}
+                                <br />
+                                ${addPx(value)}
+                                <br />
+                                <input
+                                    type="range"
+                                    max="1000"
+                                    min="20"
+                                    .value=${value}
+                                    ${listen('input', (event) => {
+                                        updateConstraints(
+                                            event.currentTarget as HTMLInputElement,
+                                            boundary,
+                                            axis,
+                                        );
+                                    })}
+                                />
+                            </label>
+                        `;
+                    });
+
+                    return html`
+                        <div class="constraint-controls">${inputs}</div>
+                    `;
+                })}
             </p>
             <div class="images-container">
-                ${renderImages(ensuredConstraints, state.imageUrls, state.forceImageGrow)}
+                ${renderImages(ensuredConstraints, state.imageUrls)}
             </div>
         `;
     },
 });
 
 function renderImages(
-    maxDimensions: MaxDimensions,
+    constraints: MinAndMaxDimensions,
     imageUrls: AsyncState<ReadonlyArray<string>>,
-    forceImageGrow: boolean,
 ) {
     return renderAsyncState(imageUrls, 'Loading...', (resolvedImageUrls) => {
         return sanitizeUrls(resolvedImageUrls).map((imageUrl) => {
+            const maxStyle = `
+                height: ${addPx(constraints.max.height)};
+                max-height: ${addPx(constraints.max.height)};
+                width: ${addPx(constraints.max.width)};
+                max-width: ${addPx(constraints.max.width)}`;
+            const minStyle = `height: ${addPx(constraints.min.height)}; width: ${addPx(
+                constraints.min.width,
+            )}`;
             return html`
-                <${VirResizableImage}
-                    ${assign(VirResizableImage, {imageUrl, maxDimensions, forceImageGrow})}
-                ></${VirResizableImage}>
+                <div
+                    class="constraint-wrapper max"
+                    style=${maxStyle}
+                >
+                    <a
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        href=${imageUrl}
+                        ${listen('click', (event) => {
+                            console.log(event);
+                        })}
+                    >
+                        <${VirResizableImage}
+                            ${assign(VirResizableImage, {
+                                imageUrl,
+                                max: constraints.max,
+                                min: constraints.min,
+                            })}
+                        ></${VirResizableImage}>
+                    </a>
+                    <div
+                        class="min-wrapper"
+                    >
+                        <div
+                            class="constraint-wrapper min"
+                            style=${minStyle}
+                        ></div>
+                    </div>
+                </div>
             `;
         });
     });
