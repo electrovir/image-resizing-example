@@ -1,5 +1,5 @@
 import {addPx, loadImage} from '@augment-vir/browser';
-import {collapseWhiteSpace, wait} from '@augment-vir/common';
+import {collapseWhiteSpace, extractErrorMessage, wait} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {asyncState, css, defineElement, html, onDomCreated, renderAsyncState} from 'element-vir';
 import type {TemplateResult} from 'lit';
@@ -61,6 +61,10 @@ export const VirResizableImage = defineElement<{
         .frame-constraint {
             position: relative;
             transition: 100ms;
+            max-width: 100%;
+            max-height: 100%;
+            text-align: center;
+            word-break: break-word;
         }
 
         iframe {
@@ -76,7 +80,11 @@ export const VirResizableImage = defineElement<{
         updateState({
             imageData: {
                 createPromise: async () => {
-                    return getImageData(inputs.imageUrl);
+                    return getImageData(inputs.imageUrl).catch(async () => {
+                        // try again
+                        await wait(1000);
+                        return getImageData(inputs.imageUrl);
+                    });
                 },
                 trigger: inputs.imageUrl,
             },
@@ -155,6 +163,11 @@ export const VirResizableImage = defineElement<{
                             inputs.transformSvgJavascript,
                         )}
                     ></iframe>
+                `;
+            },
+            (error) => {
+                return html`
+                    <slot name="error">${extractErrorMessage(error)}</slot>
                 `;
             },
         ) as string | TemplateResult;
