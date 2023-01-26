@@ -197,7 +197,6 @@ export const VirResizableImage = defineElement<{
             },
         ) as string | TemplateResult;
 
-        console.log(state.imageData);
         const frameConstraintMinStyles =
             state.imageData instanceof Error
                 ? css`
