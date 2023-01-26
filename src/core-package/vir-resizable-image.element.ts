@@ -61,8 +61,17 @@ export const VirResizableImage = defineElement<{
         .frame-constraint {
             position: relative;
             transition: 100ms;
+        }
+
+        .error-wrapper,
+        .loading-wrapper {
+            min-width: 100%;
+            min-height: 100%;
             max-width: 100%;
             max-height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
             word-break: break-word;
         }
@@ -96,10 +105,19 @@ export const VirResizableImage = defineElement<{
                 : inputs.min;
         const max = inputs.max;
 
+        const loadingWrapperStyles = min
+            ? css`
+                  min-width: ${min.width}px;
+                  min-height: ${min.height}px;
+              `
+            : '';
+
         const iframeTemplate = renderAsyncState(
             state.imageData,
             html`
-                <slot name="loading">Loading...</slot>
+                <div class="loading-wrapper" style=${loadingWrapperStyles}>
+                    <slot name="loading">Loading...</slot>
+                </div>
             `,
             (resolvedImageData) => {
                 const frameConstraintDiv = host.shadowRoot.querySelector('.frame-constraint');
@@ -149,7 +167,11 @@ export const VirResizableImage = defineElement<{
                                         imageDimensions: {width, height},
                                     });
                                 } else {
-                                    console.warn(`Got bad data: ${JSON.stringify(data)}`);
+                                    console.warn(
+                                        `Got bad data from vir-resizable-image image iframe: ${JSON.stringify(
+                                            data,
+                                        )}`,
+                                    );
                                 }
                             });
                             while (!gotPong) {
@@ -163,20 +185,29 @@ export const VirResizableImage = defineElement<{
                             inputs.transformSvgJavascript,
                         )}
                     ></iframe>
+                    <slot name="loaded"></slot>
                 `;
             },
             (error) => {
                 return html`
-                    <slot name="error">${extractErrorMessage(error)}</slot>
+                    <div class="error-wrapper">
+                        <slot name="error">${extractErrorMessage(error)}</slot>
+                    </div>
                 `;
             },
         ) as string | TemplateResult;
 
+        console.log(state.imageData);
+        const frameConstraintMinStyles =
+            state.imageData instanceof Error
+                ? css`
+                      max-width: 100%;
+                      max-height: 100%;
+                  `
+                : '';
+
         return html`
-            <div class="frame-constraint">
-                ${iframeTemplate}
-                <slot name="loaded"></slot>
-            </div>
+            <div class="frame-constraint" style=${frameConstraintMinStyles}>${iframeTemplate}</div>
             <div class="click-cover"></div>
         `;
     },
