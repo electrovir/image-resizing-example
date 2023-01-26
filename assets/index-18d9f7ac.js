@@ -96,7 +96,7 @@
                     <div class="error-wrapper">
                         <slot name="error">${fn(l)}</slot>
                     </div>
-                `);console.log(t.imageData);const u=t.imageData instanceof Error?lt`
+                `),u=t.imageData instanceof Error?lt`
                       max-width: 100%;
                       max-height: 100%;
                   `:"";return ne`
