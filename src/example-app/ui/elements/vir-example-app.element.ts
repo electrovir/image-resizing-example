@@ -1,15 +1,13 @@
 import {addPx} from '@augment-vir/browser';
 import {areJsonEqual, capitalizeFirstLetter, wait} from '@augment-vir/common';
 import {assign, AsyncState, asyncState, css, html, listen, renderAsyncState} from 'element-vir';
-import {Dimensions, VirResizableImage} from '../../..';
+import {DimensionConstraints, Dimensions, VirResizableImage} from '../../..';
 import {sanitizeUrls, storedUrls} from '../../data/indexed-db/stored-urls';
 import {virRouter} from '../../router/vir-router';
 import {defineVirElementNoInputs} from './define-vir-element';
 import {VirUrlInput} from './vir-url-input.element';
 
-type MinAndMaxDimensions = {min: Dimensions; max: Dimensions};
-
-const defaultConstraints: MinAndMaxDimensions = {
+const defaultConstraints: DimensionConstraints = {
     max: {
         width: 300,
         height: 600,
@@ -24,7 +22,7 @@ export const VirExampleApp = defineVirElementNoInputs({
     tagName: 'vir-example-app',
     stateInit: {
         imageUrls: asyncState(storedUrls.get()),
-        constraints: undefined as MinAndMaxDimensions | undefined,
+        constraints: undefined as DimensionConstraints | undefined,
         router: virRouter,
         urlUpdateDebounce: {promise: undefined, lastSearch: undefined} as {
             promise: Promise<void> | undefined;
@@ -286,7 +284,7 @@ export const VirExampleApp = defineVirElementNoInputs({
 });
 
 function renderImages(
-    constraints: MinAndMaxDimensions,
+    constraints: DimensionConstraints,
     imageUrls: AsyncState<ReadonlyArray<string>>,
 ) {
     return renderAsyncState(imageUrls, 'Loading...', (resolvedImageUrls) => {

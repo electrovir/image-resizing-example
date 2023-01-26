@@ -1,4 +1,4 @@
-import {clamp, mapObjectValues} from '@augment-vir/common';
+import {clamp, mapObjectValues, PartialAndNullable} from '@augment-vir/common';
 import {greaterThan, lessThan} from './number';
 
 export type Dimensions = {
@@ -55,15 +55,16 @@ export function factorDimensions({box, ratio}: {box: Dimensions; ratio: number})
     return mapObjectValues(box, (key, value) => value * ratio);
 }
 
-export function clampDimensions({
-    box,
-    min,
-    max,
-}: {
-    min?: Dimensions | undefined;
-    max?: Dimensions | undefined;
+export type DimensionConstraints = {
+    min: Dimensions;
+    max: Dimensions;
+};
+
+export type OptionalConstraintsWithBox = {
     box: Dimensions;
-}): Dimensions {
+} & PartialAndNullable<DimensionConstraints>;
+
+export function clampDimensions({box, min, max}: OptionalConstraintsWithBox): Dimensions {
     return mapObjectValues(box, (axis, originalValue) => {
         return clamp({
             value: originalValue,
@@ -73,15 +74,7 @@ export function clampDimensions({
     });
 }
 
-export function scaleToConstraints({
-    min,
-    max,
-    box,
-}: {
-    min?: Dimensions | undefined;
-    max?: Dimensions | undefined;
-    box: Dimensions;
-}): Dimensions {
+export function scaleToConstraints({min, max, box}: OptionalConstraintsWithBox): Dimensions {
     const ratio = calculateRatio({
         min,
         max,
@@ -93,15 +86,7 @@ export function scaleToConstraints({
     // return clampDimensions({min, max, box: resizedBox});
 }
 
-export function calculateRatio({
-    min,
-    max,
-    box,
-}: {
-    min?: Dimensions | undefined;
-    max?: Dimensions | undefined;
-    box: Dimensions;
-}): number {
+export function calculateRatio({min, max, box}: OptionalConstraintsWithBox): number {
     if (!min && !max) {
         return 1;
     }
