@@ -82,6 +82,12 @@ export const VirResizableImage = defineElement<{
             },
         });
 
+        const min =
+            inputs.min && inputs.max
+                ? clampDimensions({box: inputs.min, max: inputs.max})
+                : inputs.min;
+        const max = inputs.max;
+
         const iframeTemplate = renderAsyncState(
             state.imageData,
             html`
@@ -97,8 +103,8 @@ export const VirResizableImage = defineElement<{
                     state.imageDimensions ?? resolvedImageData.dimensions;
 
                 const newImageSize: Dimensions = scaleToConstraints({
-                    min: inputs.min,
-                    max: inputs.max,
+                    min,
+                    max,
                     box: imageDimensions,
                 });
 
@@ -106,8 +112,8 @@ export const VirResizableImage = defineElement<{
                 frameConstraintDiv.style.height = addPx(Math.floor(newImageSize.height));
 
                 const hostSize: Dimensions = clampDimensions({
-                    min: inputs.min,
-                    max: inputs.max,
+                    min,
+                    max,
                     box: newImageSize,
                 });
                 host.style.width = addPx(hostSize.width);
