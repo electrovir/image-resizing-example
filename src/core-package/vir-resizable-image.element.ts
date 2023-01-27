@@ -304,6 +304,7 @@ async function loadDimensions(imageUrl: string): Promise<Dimensions> {
 }
 
 function generateIframeDoc(imageData: ImageData, transformJavascript: string | undefined): string {
+    const placeholder = Math.random();
     const htmlTemplate = html`
         <!DOCTYPE html>
         <html>
@@ -340,7 +341,7 @@ function generateIframeDoc(imageData: ImageData, transformJavascript: string | u
                 </script>
             </head>
             <body>
-                ${imageData.templateString}
+                ${placeholder}
 
                 <script>
                     const svgElement = document.body.querySelector('svg');
@@ -397,7 +398,10 @@ function generateIframeDoc(imageData: ImageData, transformJavascript: string | u
         </html>
     `;
 
-    const htmlString = collapseWhiteSpace(convertTemplateToString(htmlTemplate));
+    const htmlString = collapseWhiteSpace(convertTemplateToString(htmlTemplate)).replace(
+        String(placeholder),
+        `\n${imageData.templateString}\n`,
+    );
 
     return htmlString;
 }
