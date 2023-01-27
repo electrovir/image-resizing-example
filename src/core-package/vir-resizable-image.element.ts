@@ -295,9 +295,11 @@ function generateIframeDoc(
                         const viewBoxWidth = Number(viewBoxDimensions?.[1]);
                         const viewBoxHeight = Number(viewBoxDimensions?.[2]);
                         const width =
-                            Number(removePx(svgElement.getAttribute('width'))) || viewBoxWidth;
+                            Number(svgElement.getAttribute('width')?.replace(/px$/, '')) ||
+                            viewBoxWidth;
                         const height =
-                            Number(removePx(svgElement.getAttribute('height'))) || viewBoxHeight;
+                            Number(svgElement.getAttribute('height')?.replace(/px$/, '')) ||
+                            viewBoxHeight;
                         if (!isNaN(width) && !isNaN(height) && !viewBox) {
                             svgElement.setAttribute('viewBox', \`0 0 \${width} \${height}\`);
                         } else if (isNaN(width) || isNaN(height)) {
