@@ -8,6 +8,7 @@ Exports a native web element, `VirResizableImage` (for use in [`element-vir`](ht
 -   [x] works with SVGs and normal images
 -   [x] works with SVGs that have `<image>` elements
 -   [x] works with SVGs that rely on `<script>` elements without giving them access to the main window
+-   [x] works with "images" that are actually embedded HTML documents
 -   [x] tested in Safari, Chrome, and Firefox
 -   [x] fixes missing attributes on SVG images
 -   [x] allows for arbitrary manipulation of SVG code to account for errors in the original SVG code

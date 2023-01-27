@@ -106,10 +106,12 @@ export const VirExampleApp = defineVirElementNoInputs({
 
         .constraint-wrapper.min {
             border-color: lime;
+            pointer-events: none;
         }
 
         .constraint-wrapper .min-wrapper {
             position: absolute;
+            pointer-events: none;
             top: 0;
             left: 0;
             height: 100%;
@@ -306,9 +308,6 @@ function renderImages(
                         target="_blank"
                         rel="noopener noreferrer"
                         href=${imageUrl}
-                        ${listen('click', (event) => {
-                            console.log(event);
-                        })}
                     >
                         <${VirResizableImage}
                             ${assign(VirResizableImage, {

@@ -5,8 +5,15 @@ import {asyncState, css, defineElement, html, onDomCreated, renderAsyncState} fr
 import type {TemplateResult} from 'lit';
 import {clampDimensions, Dimensions, scaleToConstraints} from './augments/dimensions';
 
+enum ImageType {
+    Html = 'html',
+    Svg = 'svg',
+    Image = 'image',
+}
+
 type ImageData = {
     templateString: string;
+    imageType: ImageType;
     dimensions: Dimensions;
     imageUrl: string;
 };
@@ -17,6 +24,9 @@ type ImageData = {
  */
 const readyPingMessage = 'ready-ping';
 const readyPongMessage = 'ready-pong';
+const defaultClickCover = html`
+    <div class="click-cover"></div>
+`;
 
 export const VirResizableImage = defineElement<{
     imageUrl: string;
@@ -147,43 +157,56 @@ export const VirResizableImage = defineElement<{
 
                 return html`
                     <iframe
-                        ${onDomCreated(async (rawIframe) => {
-                            const iframe = rawIframe as HTMLIFrameElement;
-                            let gotPong = false;
-                            iframe.contentWindow!.addEventListener('message', (message) => {
-                                if (message.data === readyPingMessage) {
-                                    return;
-                                } else if (message.data === readyPongMessage) {
-                                    gotPong = true;
-                                    return;
-                                }
-
-                                const data = JSON.parse(message.data);
-                                const width = Number(data.width);
-                                const height = Number(data.height);
-
-                                if (!isNaN(width) && !isNaN(height)) {
-                                    updateState({
-                                        imageDimensions: {width, height},
-                                    });
-                                } else {
-                                    console.warn(
-                                        `Got bad data from vir-resizable-image image iframe: ${JSON.stringify(
-                                            data,
-                                        )}`,
-                                    );
-                                }
-                            });
-                            while (!gotPong) {
-                                iframe.contentWindow?.postMessage(readyPingMessage);
-                                await wait(100);
-                            }
-                        })}
+                        loading="lazy"
+                        referrerpolicy="no-referrer"
                         scrolling="no"
                         srcdoc=${generateIframeDoc(
                             resolvedImageData,
                             inputs.transformSvgJavascript,
                         )}
+                        ${onDomCreated(async (rawIframe) => {
+                            const iframe = rawIframe as HTMLIFrameElement;
+                            iframe.onload = async () => {
+                                let gotPong = false;
+                                const startTime = Date.now();
+                                while (!iframe.contentWindow) {
+                                    await wait(100);
+                                    if (Date.now() - startTime > 30_000) {
+                                        throw new Error(
+                                            `Took over 10 seconds for the vir-resizable-image iframe's content window to appear.`,
+                                        );
+                                    }
+                                }
+                                iframe.contentWindow.addEventListener('message', (message) => {
+                                    if (message.data === readyPingMessage) {
+                                        return;
+                                    } else if (message.data === readyPongMessage) {
+                                        gotPong = true;
+                                        return;
+                                    }
+
+                                    const data = JSON.parse(message.data);
+                                    const width = Number(data.width);
+                                    const height = Number(data.height);
+
+                                    if (!isNaN(width) && !isNaN(height)) {
+                                        updateState({
+                                            imageDimensions: {width, height},
+                                        });
+                                    } else {
+                                        console.warn(
+                                            `Got bad data from vir-resizable-image image iframe: ${JSON.stringify(
+                                                data,
+                                            )}`,
+                                        );
+                                    }
+                                });
+                                while (!gotPong) {
+                                    iframe.contentWindow.postMessage(readyPingMessage);
+                                    await wait(100);
+                                }
+                            };
+                        })}
                     ></iframe>
                     <slot name="loaded"></slot>
                 `;
@@ -197,6 +220,23 @@ export const VirResizableImage = defineElement<{
             },
         ) as string | TemplateResult;
 
+        const clickCoverTemplate = renderAsyncState(
+            state.imageData,
+            defaultClickCover,
+            (resolvedImageData) => {
+                if (resolvedImageData.imageType === ImageType.Html) {
+                    /**
+                     * In this case the "image" is likely meant to be interactive, so don't block
+                     * mouse interactions.
+                     */
+                    return '';
+                } else {
+                    return defaultClickCover;
+                }
+            },
+            () => '',
+        );
+
         const frameConstraintMinStyles =
             state.imageData instanceof Error
                 ? css`
@@ -207,39 +247,59 @@ export const VirResizableImage = defineElement<{
 
         return html`
             <div class="frame-constraint" style=${frameConstraintMinStyles}>${iframeTemplate}</div>
-            <div class="click-cover"></div>
+            ${clickCoverTemplate}
         `;
     },
 });
 
+async function determineImageType(imageResponse: Response, imageText: string): Promise<ImageType> {
+    const contentType = imageResponse.headers.get('Content-Type') ?? '';
+    if (contentType.includes('svg') || imageText.includes('<svg')) {
+        return ImageType.Svg;
+    } else if (contentType.includes('html') || imageText.includes('<html')) {
+        return ImageType.Html;
+    } else {
+        return ImageType.Image;
+    }
+}
+
 async function getImageData(imageUrl: string): Promise<ImageData> {
     const imageResponse = await fetch(imageUrl);
     const imageText = await imageResponse.text();
-    const isSvg =
-        imageResponse.headers.get('Content-Type')?.includes('svg') || imageText.includes('<svg');
+
+    const imageType = await determineImageType(imageResponse, imageText);
     const imageTemplate = html`
         <img src=${imageUrl} />
     `;
 
-    const templateString = isSvg ? imageText : convertTemplateToString(imageTemplate);
+    const templateString =
+        imageType === ImageType.Image ? convertTemplateToString(imageTemplate) : imageText;
     const dimensions = await loadDimensions(imageUrl);
 
     return {
         templateString,
         dimensions,
         imageUrl,
+        imageType,
     };
 }
 
 async function loadDimensions(imageUrl: string): Promise<Dimensions> {
-    const image = await loadImage(imageUrl);
+    try {
+        const image = await loadImage(imageUrl);
 
-    const dimensions: Dimensions = {
-        width: image.naturalWidth,
-        height: image.naturalHeight,
-    };
+        const dimensions: Dimensions = {
+            width: image.naturalWidth,
+            height: image.naturalHeight,
+        };
 
-    return dimensions;
+        return dimensions;
+    } catch (error) {
+        return {
+            height: 0,
+            width: 0,
+        };
+    }
 }
 
 function generateIframeDoc(
@@ -319,7 +379,7 @@ function generateIframeDoc(
                         svgElement.style.removeProperty('height');
                         /*
                         console.log({
-                            width,
+                            width, g
                             height,
                             viewBoxWidth,
                             viewBoxHeight,
