@@ -82,8 +82,10 @@ export function scaleToConstraints({min, max, box}: OptionalConstraintsWithBox):
     });
 
     const resizedBox = factorDimensions({box, ratio});
-    return resizedBox;
-    // return clampDimensions({min, max, box: resizedBox});
+    return {
+        height: resizedBox.height || min?.height || 250, // 250 = idk we have to pick SOMETHING
+        width: resizedBox.width || min?.width || 250, // 250 = idk we have to pick SOMETHING
+    };
 }
 
 export function calculateRatio({min, max, box}: OptionalConstraintsWithBox): number {

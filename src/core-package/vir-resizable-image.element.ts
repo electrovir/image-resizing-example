@@ -34,6 +34,8 @@ export const VirResizableImage = defineElement<{
     max?: Dimensions | undefined;
     /** The min image size constraints which the image will be resized to fit within. */
     min?: Dimensions | undefined;
+    /** For hard-coding the original image size pre-scaling to fit the given constraints. */
+    originalImageSize?: Dimensions | undefined;
     /**
      * String of JavaScript that will be interpolated into the iframe source code. It will be used
      * within a context where the variable "svgElement" will reference the relevant SVG element,
@@ -136,7 +138,9 @@ export const VirResizableImage = defineElement<{
                 }
 
                 const imageDimensions: Dimensions =
-                    state.imageDimensions ?? resolvedImageData.dimensions;
+                    inputs.originalImageSize ??
+                    state.imageDimensions ??
+                    resolvedImageData.dimensions;
 
                 const newImageSize: Dimensions = scaleToConstraints({
                     min,
