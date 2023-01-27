@@ -108,7 +108,7 @@
             ${u}
         `}});async function no(t,e){const n=t.headers.get("Content-Type")??"";return n.includes("svg")||e.includes("<svg")?"svg":n.includes("html")||e.includes("<html")?"html":"image"}async function ci(t){const e=await fetch(t),n=await e.text(),r=await no(e,n),i=Z`
         <img src=${t} />
-    `,s=r==="image"?en(i):n,a=await ro(t);return{templateString:s,dimensions:a,imageUrl:t,imageType:r}}async function ro(t){try{const e=await zs(t);return{width:e.naturalWidth,height:e.naturalHeight}}catch{return{height:0,width:0}}}function io(t,e){const n=Z(ui||(ui=to([`
+    `,s=r==="image"?en(i):n,a=await ro(t);return{templateString:s,dimensions:a,imageUrl:t,imageType:r}}async function ro(t){try{const e=await zs(t);return{width:e.naturalWidth,height:e.naturalHeight}}catch{return{height:0,width:0}}}function io(t,e){const n=Math.random(),r=Z(ui||(ui=to([`
         <!DOCTYPE html>
         <html>
             <head>
@@ -290,7 +290,9 @@
                 <\/script>
             </body>
         </html>
-    `])),jn,is,t.templateString,t.imageUrl,t.imageUrl,JSON.stringify(t.dimensions),e??"");return ki(en(n))}/*! *****************************************************************************
+    `])),jn,is,n,t.imageUrl,t.imageUrl,JSON.stringify(t.dimensions),e??"");return ki(en(r)).replace(String(n),`
+${t.templateString}
+`)}/*! *****************************************************************************
 Copyright (c) Microsoft Corporation.
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted.
