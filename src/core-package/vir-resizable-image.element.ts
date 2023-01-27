@@ -41,7 +41,7 @@ export const VirResizableImage = defineElement<{
      * within a context where the variable "svgElement" will reference the relevant SVG element,
      * which you can then mutate.
      */
-    transformSvgJavascript?: string | undefined;
+    transformJavascript?: string | undefined;
 }>()({
     tagName: 'vir-resizable-image',
     stateInit: {
@@ -164,10 +164,7 @@ export const VirResizableImage = defineElement<{
                         loading="lazy"
                         referrerpolicy="no-referrer"
                         scrolling="no"
-                        srcdoc=${generateIframeDoc(
-                            resolvedImageData,
-                            inputs.transformSvgJavascript,
-                        )}
+                        srcdoc=${generateIframeDoc(resolvedImageData, inputs.transformJavascript)}
                         ${onDomCreated(async (rawIframe) => {
                             const iframe = rawIframe as HTMLIFrameElement;
                             iframe.onload = async () => {
@@ -306,10 +303,7 @@ async function loadDimensions(imageUrl: string): Promise<Dimensions> {
     }
 }
 
-function generateIframeDoc(
-    imageData: ImageData,
-    transformSvgJavascript: string | undefined,
-): string {
+function generateIframeDoc(imageData: ImageData, transformJavascript: string | undefined): string {
     const htmlTemplate = html`
         <!DOCTYPE html>
         <html>
@@ -392,12 +386,12 @@ function generateIframeDoc(
                         });
                         */
 
-                        ${transformSvgJavascript ?? ''};
-
                         readyPromise.then(() => {
                             globalThis.postMessage(JSON.stringify({width, height}));
                         });
                     }
+
+                    ${transformJavascript ?? ''};
                 </script>
             </body>
         </html>
