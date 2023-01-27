@@ -1,6 +1,6 @@
 {
     "name": "@electrovir/resizable-image-element",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "description": "Arbitrary image resizing to fit within arbitrary dimensions.",
     "keywords": [
         "element",
