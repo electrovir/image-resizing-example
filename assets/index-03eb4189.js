@@ -92,7 +92,7 @@
                         loading="lazy"
                         referrerpolicy="no-referrer"
                         scrolling="no"
-                        srcdoc=${io(f,e.transformSvgJavascript)}
+                        srcdoc=${io(f,e.transformJavascript)}
                         ${Ia(async d=>{const y=d;y.onload=async()=>{let b=!1;const E=Date.now();for(;!y.contentWindow;)if(await Ft(100),Date.now()-E>3e4)throw new Error("Took over 10 seconds for the vir-resizable-image iframe's content window to appear.");for(y.contentWindow.addEventListener("message",g=>{if(g.data===jn)return;if(g.data===is){b=!0;return}const w=JSON.parse(g.data),v=Number(w.width),_=Number(w.height);!isNaN(v)&&!isNaN(_)?n({imageDimensions:{width:v,height:_}}):console.warn(`Got bad data from vir-resizable-image image iframe: ${JSON.stringify(w)}`)});!b;)y.contentWindow.postMessage(jn),await Ft(100)}})}
                     ></iframe>
                     <slot name="loaded"></slot>
@@ -190,12 +190,12 @@
                         });
                         */
 
-                        `,`;
-
                         readyPromise.then(() => {
                             globalThis.postMessage(JSON.stringify({width, height}));
                         });
                     }
+
+                    `,`;
                 <\/script>
             </body>
         </html>
@@ -281,12 +281,12 @@
                         });
                         */
 
-                        `,`;
-
                         readyPromise.then(() => {
                             globalThis.postMessage(JSON.stringify({width, height}));
                         });
                     }
+
+                    `,`;
                 <\/script>
             </body>
         </html>
