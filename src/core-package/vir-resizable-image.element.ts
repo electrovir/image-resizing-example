@@ -1,4 +1,4 @@
-import {addPx, loadImage} from '@augment-vir/browser';
+import {addPx, loadImage, loadVideo} from '@augment-vir/browser';
 import {collapseWhiteSpace, extractErrorMessage, wait} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {asyncState, css, defineElement, html, onDomCreated, renderAsyncState} from 'element-vir';
@@ -9,6 +9,7 @@ enum ImageType {
     Html = 'html',
     Svg = 'svg',
     Image = 'image',
+    Video = 'video',
 }
 
 type ImageData = {
@@ -270,12 +271,38 @@ export const VirResizableImage = defineElement<{
 
 async function determineImageType(imageResponse: Response, imageText: string): Promise<ImageType> {
     const contentType = imageResponse.headers.get('Content-Type') ?? '';
-    if (contentType.includes('svg') || imageText.includes('<svg')) {
+    if (contentType.includes('video')) {
+        return ImageType.Video;
+    } else if (contentType.includes('svg') || imageText.includes('<svg')) {
         return ImageType.Svg;
     } else if (contentType.includes('html') || imageText.includes('<html')) {
         return ImageType.Html;
     } else {
         return ImageType.Image;
+    }
+}
+
+function generateTemplateString({
+    imageType,
+    imageText,
+    imageUrl,
+}: {
+    imageType: ImageType;
+    imageText: string;
+    imageUrl: string;
+}): string {
+    if (imageType === ImageType.Image) {
+        return convertTemplateToString(html`
+            <img src=${imageUrl} />
+        `);
+    } else if (imageType === ImageType.Video) {
+        return convertTemplateToString(html`
+            <video autoplay muted loop>
+                <source src=${imageUrl} type="video/mp4" />
+            </video>
+        `);
+    } else {
+        return imageText;
     }
 }
 
@@ -292,13 +319,13 @@ async function getImageData(imageUrl: string): Promise<ImageData> {
         ? await determineImageType(imageResponse, imageText)
         : // naively assume it's an image
           ImageType.Image;
-    const imageTemplate = html`
-        <img src=${imageUrl} />
-    `;
 
-    const templateString =
-        imageType === ImageType.Image ? convertTemplateToString(imageTemplate) : imageText;
-    const dimensions = await loadDimensions(imageUrl);
+    const templateString = generateTemplateString({
+        imageText,
+        imageType,
+        imageUrl,
+    });
+    const dimensions = await loadDimensions(imageUrl, imageType);
 
     return {
         templateString,
@@ -308,16 +335,33 @@ async function getImageData(imageUrl: string): Promise<ImageData> {
     };
 }
 
-async function loadDimensions(imageUrl: string): Promise<Dimensions> {
+async function loadDimensions(imageUrl: string, imageType: ImageType): Promise<Dimensions> {
     try {
-        const image = await loadImage(imageUrl);
+        if (imageType === ImageType.Video) {
+            const video = await loadVideo(imageUrl);
+            return {
+                width: video.videoWidth,
+                height: video.videoHeight,
+            };
+        } else if (imageType === ImageType.Html) {
+            /**
+             * There's no way of knowing what the size of an HTML page should be. In this case, it
+             * should be provide via the originalImageSize input.
+             */
+            return {
+                height: 0,
+                width: 0,
+            };
+        } else {
+            const image = await loadImage(imageUrl);
 
-        const dimensions: Dimensions = {
-            width: image.naturalWidth,
-            height: image.naturalHeight,
-        };
+            const dimensions: Dimensions = {
+                width: image.naturalWidth,
+                height: image.naturalHeight,
+            };
 
-        return dimensions;
+            return dimensions;
+        }
     } catch (error) {
         return {
             height: 0,
@@ -426,7 +470,8 @@ function generateIframeDoc(
                     }
 
                     img,
-                    svg {
+                    svg,
+                    video {
                         max-height: 100vh;
                         max-width: 100vw;
                         width: 100vw;
@@ -448,7 +493,7 @@ function generateIframeDoc(
             </head>
             <body>
                 ${placeholder} ${imageData.imageType === ImageType.Svg ? svgScript : ''}
-                ${extraHTML ?? ''};
+                ${extraHTML ?? ''}
             </body>
         </html>
     `;
