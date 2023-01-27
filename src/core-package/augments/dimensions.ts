@@ -120,9 +120,7 @@ export function calculateRatio({min, max, box}: OptionalConstraintsWithBox): num
           })
         : 1;
 
-    if (doubleMinRatio > 1) {
-        return minRatio;
-    } else {
-        return initialRatio;
-    }
+    const finalRatio = doubleMinRatio > 1 ? minRatio : initialRatio;
+
+    return finalRatio > 1 ? 1 : finalRatio;
 }

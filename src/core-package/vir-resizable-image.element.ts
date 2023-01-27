@@ -36,25 +36,29 @@ export const VirResizableImage = defineElement<{
     min?: Dimensions | undefined;
     /** For hard-coding the original image size pre-scaling to fit the given constraints. */
     originalImageSize?: Dimensions | undefined;
-    /**
-     * String of JavaScript that will be interpolated into the iframe source code. It will be used
-     * within a context where the variable "svgElement" will reference the relevant SVG element,
-     * which you can then mutate.
-     */
-    transformJavascript?: string | undefined;
+    /** String of HTML that will be interpolated into the iframe source code. */
+    extraHTML?: string | undefined | TemplateResult;
 }>()({
     tagName: 'vir-resizable-image',
     stateInit: {
         imageData: asyncState<ImageData>(),
         imageDimensions: undefined as Dimensions | undefined,
+        shouldVerticallyCenter: false,
     },
-    styles: css`
+    hostClasses: {
+        verticallyCenter: ({state}) => state.shouldVerticallyCenter,
+    },
+    styles: ({hostClassSelectors}) => css`
         :host {
             position: relative;
             box-sizing: content-box;
             display: flex;
             justify-content: center;
             overflow: hidden;
+        }
+
+        ${hostClassSelectors.verticallyCenter} {
+            align-items: center;
         }
 
         .click-cover {
@@ -156,6 +160,17 @@ export const VirResizableImage = defineElement<{
                     max,
                     box: newImageSize,
                 });
+
+                if (newImageSize.height < hostSize.height) {
+                    updateState({
+                        shouldVerticallyCenter: true,
+                    });
+                } else {
+                    updateState({
+                        shouldVerticallyCenter: false,
+                    });
+                }
+
                 host.style.width = addPx(hostSize.width);
                 host.style.height = addPx(hostSize.height);
 
@@ -164,7 +179,7 @@ export const VirResizableImage = defineElement<{
                         loading="lazy"
                         referrerpolicy="no-referrer"
                         scrolling="no"
-                        srcdoc=${generateIframeDoc(resolvedImageData, inputs.transformJavascript)}
+                        srcdoc=${generateIframeDoc(resolvedImageData, inputs.extraHTML)}
                         ${onDomCreated(async (rawIframe) => {
                             const iframe = rawIframe as HTMLIFrameElement;
                             iframe.onload = async () => {
@@ -265,10 +280,18 @@ async function determineImageType(imageResponse: Response, imageText: string): P
 }
 
 async function getImageData(imageUrl: string): Promise<ImageData> {
-    const imageResponse = await fetch(imageUrl);
-    const imageText = await imageResponse.text();
+    let imageResponse: Response | undefined;
 
-    const imageType = await determineImageType(imageResponse, imageText);
+    try {
+        imageResponse = await fetch(imageUrl);
+    } catch (error) {}
+
+    const imageText = (await imageResponse?.text()) ?? '';
+
+    const imageType = imageResponse
+        ? await determineImageType(imageResponse, imageText)
+        : // naively assume it's an image
+          ImageType.Image;
     const imageTemplate = html`
         <img src=${imageUrl} />
     `;
@@ -303,24 +326,15 @@ async function loadDimensions(imageUrl: string): Promise<Dimensions> {
     }
 }
 
-function generateIframeDoc(imageData: ImageData, transformJavascript: string | undefined): string {
+function generateIframeDoc(
+    imageData: ImageData,
+    extraHTML: string | TemplateResult | undefined,
+): string {
     const placeholder = Math.random();
 
     const svgScript = html`
         <script>
-            function getSvgSize() {
-                const svgElements = Array.from(document.querySelectorAll('svg'));
-
-                if (!svgElements.length) {
-                    throw new Error('Failed to find any SVG elements');
-                }
-
-                const svgElement = svgElements.find(
-                    (svgElement) => !!svgElement.getAttribute('viewBox'),
-                );
-                if (!svgElement) {
-                    throw new Error('Failed to find an SVG element with a viewBox attribute.');
-                }
+            function extractSvgSize(svgElement) {
                 const viewBox = svgElement.getAttribute('viewBox');
                 const viewBoxDimensions = viewBox?.match(/s*\\d+\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s*/);
                 const viewBoxWidth = Number(viewBoxDimensions?.[1]);
@@ -329,18 +343,31 @@ function generateIframeDoc(imageData: ImageData, transformJavascript: string | u
                     Number(svgElement.getAttribute('width')?.replace(/px$/, '')) || viewBoxWidth;
                 const height =
                     Number(svgElement.getAttribute('height')?.replace(/px$/, '')) || viewBoxHeight;
-                if (!isNaN(width) && !isNaN(height) && !viewBox) {
+
+                if (isNaN(width) || isNaN(height)) {
+                    return undefined;
+                } else {
+                    return {width, height};
+                }
+            }
+
+            function postSvgSize() {
+                const svgElements = Array.from(document.querySelectorAll('svg'));
+
+                if (!svgElements.length) {
+                    throw new Error('Failed to find any SVG elements');
+                }
+
+                const svgElement = svgElements.find((svgElement) => !!extractSvgSize(svgElement));
+
+                if (!svgElement) {
+                    throw new Error('Found no SVG element with dimensions');
+                }
+
+                const {height, width} = extractSvgSize(svgElement);
+
+                if (!svgElement.getAttribute('viewBox')) {
                     svgElement.setAttribute('viewBox', \`0 0 \${width} \${height}\`);
-                } else if (isNaN(width) || isNaN(height)) {
-                    console.warn(
-                        \`Failed to retrieve dimensions: \${JSON.stringify({
-                            width,
-                            height,
-                            viewBoxWidth,
-                            viewBoxHeight,
-                            imageUrl: '${imageData.imageUrl}',
-                        })}\`,
-                    );
                 }
                 svgElement.removeAttribute('width');
                 svgElement.removeAttribute('height');
@@ -366,12 +393,12 @@ function generateIframeDoc(imageData: ImageData, transformJavascript: string | u
 
             function repeatedGetSvgSize() {
                 try {
-                    getSvgSize();
+                    postSvgSize();
                 } catch (error) {
                     retryCount++;
                     if (retryCount > 10) {
                         throw new Error(
-                            'Tried to get the SVG size over 10 times and failed. Giving up now.',
+                            "Tried to get the SVG size for '${imageData.imageUrl}' over 10 times and failed.",
                         );
                     }
                     setTimeout(() => {
@@ -421,9 +448,7 @@ function generateIframeDoc(imageData: ImageData, transformJavascript: string | u
             </head>
             <body>
                 ${placeholder} ${imageData.imageType === ImageType.Svg ? svgScript : ''}
-                <script>
-                    ${transformJavascript ?? ''};
-                </script>
+                ${extraHTML ?? ''};
             </body>
         </html>
     `;
