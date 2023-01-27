@@ -305,6 +305,85 @@ async function loadDimensions(imageUrl: string): Promise<Dimensions> {
 
 function generateIframeDoc(imageData: ImageData, transformJavascript: string | undefined): string {
     const placeholder = Math.random();
+
+    const svgScript = html`
+        <script>
+            function getSvgSize() {
+                const svgElements = Array.from(document.querySelectorAll('svg'));
+
+                if (!svgElements.length) {
+                    throw new Error('Failed to find any SVG elements');
+                }
+
+                const svgElement = svgElements.find(
+                    (svgElement) => !!svgElement.getAttribute('viewBox'),
+                );
+                if (!svgElement) {
+                    throw new Error('Failed to find an SVG element with a viewBox attribute.');
+                }
+                const viewBox = svgElement.getAttribute('viewBox');
+                const viewBoxDimensions = viewBox?.match(/s*\\d+\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s*/);
+                const viewBoxWidth = Number(viewBoxDimensions?.[1]);
+                const viewBoxHeight = Number(viewBoxDimensions?.[2]);
+                const width =
+                    Number(svgElement.getAttribute('width')?.replace(/px$/, '')) || viewBoxWidth;
+                const height =
+                    Number(svgElement.getAttribute('height')?.replace(/px$/, '')) || viewBoxHeight;
+                if (!isNaN(width) && !isNaN(height) && !viewBox) {
+                    svgElement.setAttribute('viewBox', \`0 0 \${width} \${height}\`);
+                } else if (isNaN(width) || isNaN(height)) {
+                    console.warn(
+                        \`Failed to retrieve dimensions: \${JSON.stringify({
+                            width,
+                            height,
+                            viewBoxWidth,
+                            viewBoxHeight,
+                            imageUrl: '${imageData.imageUrl}',
+                        })}\`,
+                    );
+                }
+                svgElement.removeAttribute('width');
+                svgElement.removeAttribute('height');
+                svgElement.style.removeProperty('width');
+                svgElement.style.removeProperty('height');
+                /*
+                        console.debug({
+                            width, g
+                            height,
+                            viewBoxWidth,
+                            viewBoxHeight,
+                            imageUrl: '${imageData.imageUrl}',
+                            dimensions: JSON.parse('${JSON.stringify(imageData.dimensions)}'),
+                        });
+                        */
+
+                readyPromise.then(() => {
+                    globalThis.postMessage(JSON.stringify({width, height}));
+                });
+            }
+
+            let retryCount = 0;
+
+            function repeatedGetSvgSize() {
+                try {
+                    getSvgSize();
+                } catch (error) {
+                    retryCount++;
+                    if (retryCount > 10) {
+                        throw new Error(
+                            'Tried to get the SVG size over 10 times and failed. Giving up now.',
+                        );
+                    }
+                    setTimeout(() => {
+                        repeatedGetSvgSize();
+                    }, 500);
+                }
+            }
+
+            repeatedGetSvgSize();
+        </script>
+    `;
+
     const htmlTemplate = html`
         <!DOCTYPE html>
         <html>
@@ -324,7 +403,7 @@ function generateIframeDoc(imageData: ImageData, transformJavascript: string | u
                         max-height: 100vh;
                         max-width: 100vw;
                         width: 100vw;
-                        height: auto;
+                        height: 100vh;
                     }
                 </style>
                 <script>
@@ -341,57 +420,8 @@ function generateIframeDoc(imageData: ImageData, transformJavascript: string | u
                 </script>
             </head>
             <body>
-                ${placeholder}
-
+                ${placeholder} ${imageData.imageType === ImageType.Svg ? svgScript : ''}
                 <script>
-                    const svgElement = document.body.querySelector('svg');
-
-                    if (svgElement) {
-                        const viewBox = svgElement.getAttribute('viewBox');
-                        const viewBoxDimensions = viewBox?.match(
-                            /s*\\d+\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s*/,
-                        );
-                        const viewBoxWidth = Number(viewBoxDimensions?.[1]);
-                        const viewBoxHeight = Number(viewBoxDimensions?.[2]);
-                        const width =
-                            Number(svgElement.getAttribute('width')?.replace(/px$/, '')) ||
-                            viewBoxWidth;
-                        const height =
-                            Number(svgElement.getAttribute('height')?.replace(/px$/, '')) ||
-                            viewBoxHeight;
-                        if (!isNaN(width) && !isNaN(height) && !viewBox) {
-                            svgElement.setAttribute('viewBox', \`0 0 \${width} \${height}\`);
-                        } else if (isNaN(width) || isNaN(height)) {
-                            console.warn(
-                                \`Failed to retrieve dimensions: \${JSON.stringify({
-                                    width,
-                                    height,
-                                    viewBoxWidth,
-                                    viewBoxHeight,
-                                    imageUrl: '${imageData.imageUrl}',
-                                })}\`,
-                            );
-                        }
-                        svgElement.removeAttribute('width');
-                        svgElement.removeAttribute('height');
-                        svgElement.style.removeProperty('width');
-                        svgElement.style.removeProperty('height');
-                        /*
-                        console.log({
-                            width, g
-                            height,
-                            viewBoxWidth,
-                            viewBoxHeight,
-                            imageUrl: '${imageData.imageUrl}',
-                            dimensions: JSON.parse('${JSON.stringify(imageData.dimensions)}'),
-                        });
-                        */
-
-                        readyPromise.then(() => {
-                            globalThis.postMessage(JSON.stringify({width, height}));
-                        });
-                    }
-
                     ${transformJavascript ?? ''};
                 </script>
             </body>
