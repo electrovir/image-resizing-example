@@ -108,22 +108,32 @@ describe(calculateRatio.name, () => {
             expect: 1,
         },
         {
-            it: 'should fit to min and max if smaller in one dimension when shrunk',
+            it: 'should fit to min if smaller in one dimension',
             input: {
                 min: {
                     height: 3,
                     width: 3,
                 },
-                max: {
+                box: {
+                    height: 1,
+                    width: 6,
+                },
+            },
+            expect: 3,
+        },
+        {
+            it: 'should fit to min if smaller in both dimensions',
+            input: {
+                min: {
                     height: 3,
                     width: 3,
                 },
                 box: {
-                    height: 4,
-                    width: 12,
+                    height: 1,
+                    width: 2.5,
                 },
             },
-            expect: 0.75,
+            expect: 3,
         },
         {
             it: 'should fit to max if bigger in one dimension',
@@ -154,7 +164,7 @@ describe(calculateRatio.name, () => {
             expect: 0.5,
         },
         {
-            it: 'should prevent a ratio larger than 1',
+            it: 'should fit to min and max if smaller than min',
             input: {
                 min: {
                     height: 4,
@@ -169,7 +179,7 @@ describe(calculateRatio.name, () => {
                     width: 10,
                 },
             },
-            expect: 1,
+            expect: 2,
         },
         {
             it: 'should fit to min and max if bigger than max',
