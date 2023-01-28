@@ -1,5 +1,5 @@
 import {addPx, loadImage, loadVideo} from '@augment-vir/browser';
-import {collapseWhiteSpace, extractErrorMessage, wait} from '@augment-vir/common';
+import {collapseWhiteSpace, extractErrorMessage, filterObject, wait} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {asyncState, css, defineElement, html, onDomCreated, renderAsyncState} from 'element-vir';
 import type {TemplateResult} from 'lit';
@@ -106,13 +106,22 @@ export const VirResizableImage = defineElement<{
         updateState({
             imageData: {
                 createPromise: async () => {
+                    updateState({
+                        imageDimensions: undefined,
+                        shouldVerticallyCenter: false,
+                    });
                     return getImageData(inputs.imageUrl).catch(async () => {
                         // try again
                         await wait(1000);
                         return getImageData(inputs.imageUrl);
                     });
                 },
-                trigger: inputs.imageUrl,
+                trigger: {
+                    ...(filterObject(inputs, (key) => key !== 'extraHTML') as Omit<
+                        typeof inputs,
+                        'extraHTML'
+                    >),
+                },
             },
         });
 
@@ -327,6 +336,8 @@ async function getImageData(imageUrl: string): Promise<ImageData> {
     });
     const dimensions = await loadDimensions(imageUrl, imageType);
 
+    console.log({dimensions});
+
     return {
         templateString,
         dimensions,
@@ -363,6 +374,7 @@ async function loadDimensions(imageUrl: string, imageType: ImageType): Promise<D
             return dimensions;
         }
     } catch (error) {
+        console.warn(error);
         return {
             height: 0,
             width: 0,
