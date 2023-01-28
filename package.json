@@ -1,6 +1,6 @@
 {
     "name": "@electrovir/resizable-image-element",
-    "version": "3.1.2",
+    "version": "3.1.3",
     "description": "Arbitrary image resizing to fit within arbitrary dimensions.",
     "keywords": [
         "element",
@@ -45,13 +45,13 @@
         "test:types": "tsc --noEmit"
     },
     "dependencies": {
-        "@augment-vir/browser": "^12.1.2",
-        "@augment-vir/common": "^12.1.2",
-        "@augment-vir/element-vir": "^12.1.2"
+        "@augment-vir/browser": "^12.2.1",
+        "@augment-vir/common": "^12.2.1",
+        "@augment-vir/element-vir": "^12.2.1"
     },
     "devDependencies": {
-        "@augment-vir/browser-testing": "^12.1.2",
-        "@augment-vir/node-js": "^12.1.2",
+        "@augment-vir/browser-testing": "^12.2.1",
+        "@augment-vir/node-js": "^12.2.1",
         "@open-wc/testing": "^3.1.7",
         "@types/mocha": "^10.0.1",
         "@web/dev-server-esbuild": "^0.3.3",
