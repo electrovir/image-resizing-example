@@ -336,8 +336,6 @@ async function getImageData(imageUrl: string): Promise<ImageData> {
     });
     const dimensions = await loadDimensions(imageUrl, imageType);
 
-    console.log({dimensions});
-
     return {
         templateString,
         dimensions,

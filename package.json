@@ -1,6 +1,6 @@
 {
     "name": "@electrovir/resizable-image-element",
-    "version": "3.1.3",
+    "version": "3.1.4",
     "description": "Arbitrary image resizing to fit within arbitrary dimensions.",
     "keywords": [
         "element",
@@ -66,11 +66,11 @@
         "prettier-plugin-jsdoc": "^0.4.2",
         "prettier-plugin-multiline-arrays": "^1.1.3",
         "prettier-plugin-organize-imports": "^3.2.2",
-        "prettier-plugin-packagejson": "^2.4.0",
+        "prettier-plugin-packagejson": "^2.4.2",
         "prettier-plugin-sort-json": "^1.0.0",
         "prettier-plugin-toml": "^0.3.1",
         "spa-router-vir": "^2.0.0",
-        "typescript": "^4.9.4",
+        "typescript": "^4.9.5",
         "virmator": "^5.4.0",
         "vite": "^4.0.4"
     },
