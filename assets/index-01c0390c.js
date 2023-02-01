@@ -116,7 +116,7 @@
             <video autoplay muted loop>
                 <source src=${n} type="video/mp4" />
             </video>
-        `):e}async function ui(t){let e;try{e=await fetch(t)}catch{}const n=await(e==null?void 0:e.text())??"",r=e?await Ja(e,n):"image",i=qa({imageText:n,imageType:r,imageUrl:t}),s=await Qa(t,r);return console.log({dimensions:s}),{templateString:i,dimensions:s,imageUrl:t,imageType:r}}async function Qa(t,e){try{if(e==="video"){const n=await qs(t);return{width:n.videoWidth,height:n.videoHeight}}else{if(e==="html")return{height:0,width:0};{const n=await Js(t);return{width:n.naturalWidth,height:n.naturalHeight}}}}catch(n){return console.warn(n),{height:0,width:0}}}function Xa(t,e){const n=Math.random(),r=Y(si||(si=ii([`
+        `):e}async function ui(t){let e;try{e=await fetch(t)}catch{}const n=await(e==null?void 0:e.text())??"",r=e?await Ja(e,n):"image",i=qa({imageText:n,imageType:r,imageUrl:t}),s=await Qa(t,r);return{templateString:i,dimensions:s,imageUrl:t,imageType:r}}async function Qa(t,e){try{if(e==="video"){const n=await qs(t);return{width:n.videoWidth,height:n.videoHeight}}else{if(e==="html")return{height:0,width:0};{const n=await Js(t);return{width:n.naturalWidth,height:n.naturalHeight}}}}catch(n){return console.warn(n),{height:0,width:0}}}function Xa(t,e){const n=Math.random(),r=Y(si||(si=ii([`
         <script>
             function extractSvgSize(svgElement) {
                 const viewBox = svgElement.getAttribute('viewBox');
