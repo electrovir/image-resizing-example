@@ -355,7 +355,7 @@ async function loadDimensions(imageUrl: string, imageType: ImageType): Promise<D
         } else if (imageType === ImageType.Html) {
             /**
              * There's no way of knowing what the size of an HTML page should be. In this case, it
-             * should be provide via the originalImageSize input.
+             * should be provided via the originalImageSize input.
              */
             return {
                 height: 0,
@@ -386,8 +386,10 @@ function generateIframeDoc(
 ): string {
     const placeholder = Math.random();
 
-    const svgScript = html`
+    const sizeScript = html`
         <script>
+            const imageType = '${imageData.imageType}';
+
             function extractSvgSize(svgElement) {
                 const viewBox = svgElement.getAttribute('viewBox');
                 const viewBoxDimensions = viewBox?.match(/s*\\d+\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s*/);
@@ -403,6 +405,53 @@ function generateIframeDoc(
                 } else {
                     return {width, height};
                 }
+            }
+
+            function extractHtmlSize(element = document.body) {
+                let size;
+
+                if (element instanceof HTMLImageElement) {
+                    size = {
+                        width: element.naturalWidth,
+                        height: element.naturalHeight,
+                    };
+                } else {
+                    let width = element.getAttribute('width');
+                    let height = element.getAttribute('height');
+                    if (width && height) {
+                        size = {height, width};
+                    }
+                }
+
+                if (size) {
+                    if (!size.height || !size.width) {
+                        throw new Error(
+                            \`Got invalid html size for '${imageData.imageUrl}': \${size} \`,
+                        );
+                    }
+                    return size;
+                }
+
+                const childSizes = Array.from(element.children).map((child) =>
+                    extractHtmlSize(child),
+                );
+
+                return childSizes.reduce(
+                    (finalSize, currentSize) => {
+                        const width = Math.max(finalSize.width, currentSize.width);
+                        const height = Math.max(finalSize.height, currentSize.height);
+                        return {width, height};
+                    },
+                    {width: 0, height: 0},
+                );
+            }
+
+            function postHtmlSize(element = document.body) {
+                const size = extractHtmlSize();
+
+                readyPromise.then(() => {
+                    globalThis.postMessage(JSON.stringify(size));
+                });
             }
 
             function postSvgSize() {
@@ -443,31 +492,39 @@ function generateIframeDoc(
                 });
             }
 
+            function postSize() {
+                if (imageType === 'svg') {
+                    postSvgSize();
+                } else if (imageType === 'html') {
+                    postHtmlSize();
+                }
+            }
+
             let retryCount = 0;
 
-            function repeatedGetSvgSize() {
+            function repeatedlyPostSize() {
                 try {
-                    postSvgSize();
+                    postSize();
                 } catch (error) {
                     retryCount++;
                     if (retryCount > 10) {
                         throw new Error(
-                            "Tried to get the SVG size for '${imageData.imageUrl}' over 10 times and failed.",
+                            "Tried to get the '${imageData.imageType}' size for '${imageData.imageUrl}' over 10 times and failed.",
                         );
                     }
                     setTimeout(() => {
-                        repeatedGetSvgSize();
+                        repeatedlyPostSize();
                     }, 500);
                 }
             }
 
-            repeatedGetSvgSize();
+            repeatedlyPostSize();
         </script>
     `;
 
     const htmlTemplate = html`
         <!DOCTYPE html>
-        <html>
+        <html class="image-type-${imageData.imageType.toLowerCase()}">
             <head>
                 <style>
                     body,
@@ -487,6 +544,11 @@ function generateIframeDoc(
                         width: 100vw;
                         height: 100vh;
                     }
+
+                    html.image-type-html * {
+                        max-height: 100vh;
+                        max-width: 100vw;
+                    }
                 </style>
                 <script>
                     let resolve;
@@ -502,8 +564,7 @@ function generateIframeDoc(
                 </script>
             </head>
             <body>
-                ${placeholder} ${imageData.imageType === ImageType.Svg ? svgScript : ''}
-                ${extraHTML ?? ''}
+                ${placeholder} ${sizeScript} ${extraHTML ?? ''}
             </body>
         </html>
     `;
