@@ -148,7 +148,7 @@ export function generateIframeDoc(
             }
 
             let retryCount = 0;
-            const maxRetryCount = 10;
+            const maxRetryCount = 100;
 
             function repeatedlyPostSize() {
                 try {
@@ -164,7 +164,7 @@ export function generateIframeDoc(
                     }
                     setTimeout(() => {
                         repeatedlyPostSize();
-                    }, 1000);
+                    }, Math.min(retryCount * 50, 1000));
                 }
             }
 
