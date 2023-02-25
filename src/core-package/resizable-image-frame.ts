@@ -104,7 +104,14 @@ export function generateIframeDoc(
             }
 
             function getVideoSize() {
-                return {};
+                const video = document.querySelector('video');
+
+                const size = {
+                    width: video.videoWidth,
+                    height: video.videoHeight,
+                };
+
+                return size;
             }
 
             function getImageSize() {
@@ -183,17 +190,13 @@ export function generateIframeDoc(
                     }
 
                     html.image-type-image img,
-                    html.image-type-svg svg {
-                        display: block;
-                    }
-
-                    html.image-type-image img,
                     html.image-type-svg svg,
                     html.image-type-video video {
                         max-width: 100vw;
                         max-height: 100vh;
                         width: 100vw;
                         height: 100vh;
+                        display: block;
                     }
 
                     .crisp {

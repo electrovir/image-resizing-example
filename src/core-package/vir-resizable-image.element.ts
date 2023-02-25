@@ -24,6 +24,8 @@ export const VirResizableImage = defineElement<{
     extraHTML?: string | undefined | TemplateResult;
     /** Query selector to use to determine an html result's size. */
     htmlSizeQuerySelector?: string | undefined;
+    /** When set to true, videos will not auto play. */
+    blockAutoPlay?: boolean | undefined;
 }>()({
     tagName: 'vir-resizable-image',
     stateInit: defaultResizableImageState,
@@ -91,10 +93,10 @@ export const VirResizableImage = defineElement<{
                         settled: false,
                         shouldVerticallyCenter: false,
                     });
-                    return getImageData(inputs.imageUrl).catch(async () => {
+                    return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay).catch(async () => {
                         // try again
                         await wait(1000);
-                        return getImageData(inputs.imageUrl);
+                        return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay);
                     });
                 },
                 trigger: {
@@ -167,7 +169,12 @@ export const VirResizableImage = defineElement<{
             state.imageData,
             defaultClickCover,
             (resolvedImageData) => {
-                if (resolvedImageData.imageType === ImageType.Html) {
+                if (
+                    [
+                        ImageType.Html,
+                        ImageType.Video,
+                    ].includes(resolvedImageData.imageType)
+                ) {
                     /**
                      * In this case the "image" is likely meant to be interactive, so don't block
                      * mouse interactions.

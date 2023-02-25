@@ -30,10 +30,12 @@ function generateTemplateString({
     imageType,
     imageText,
     imageUrl,
+    blockAutoPlay,
 }: {
     imageType: ImageType;
     imageText: string;
     imageUrl: string;
+    blockAutoPlay: boolean;
 }): string {
     if (imageType === ImageType.Image) {
         return convertTemplateToString(html`
@@ -41,7 +43,12 @@ function generateTemplateString({
         `);
     } else if (imageType === ImageType.Video) {
         return convertTemplateToString(html`
-            <video autoplay muted loop>
+            <video
+                ${blockAutoPlay ? '' : 'autoplay'}
+                muted
+                loop
+                onclick="this.paused ? this.play() : this.pause()"
+            >
                 <source src=${imageUrl} type="video/mp4" />
             </video>
         `);
@@ -50,7 +57,7 @@ function generateTemplateString({
     }
 }
 
-export async function getImageData(imageUrl: string): Promise<ImageData> {
+export async function getImageData(imageUrl: string, blockAutoPlay: boolean): Promise<ImageData> {
     let imageResponse: Response | undefined;
 
     try {
@@ -68,6 +75,7 @@ export async function getImageData(imageUrl: string): Promise<ImageData> {
         imageText,
         imageType,
         imageUrl,
+        blockAutoPlay,
     });
 
     return {
