@@ -21,6 +21,7 @@ const defaultConstraints: DimensionConstraints = {
 export const VirExampleApp = defineVirElementNoInputs({
     tagName: 'vir-example-app',
     stateInit: {
+        showConstraints: true,
         imageUrls: asyncState(storedUrls.get()),
         constraints: undefined as DimensionConstraints | undefined,
         router: virRouter,
@@ -29,7 +30,10 @@ export const VirExampleApp = defineVirElementNoInputs({
             lastSearch: Record<string, string> | undefined;
         },
     },
-    styles: css`
+    hostClasses: {
+        showConstraints: ({state}) => state.showConstraints,
+    },
+    styles: ({hostClassSelectors}) => css`
         :host {
             display: flex;
             flex-direction: column;
@@ -43,13 +47,6 @@ export const VirExampleApp = defineVirElementNoInputs({
             display: flex;
             flex-direction: column;
             gap: 32px;
-        }
-
-        ${VirResizableImage} {
-            border: 1px solid blue;
-            background-color: rgb(241, 241, 241);
-            border-radius: 8px;
-            flex-shrink: 0;
         }
 
         .images-container {
@@ -92,20 +89,37 @@ export const VirExampleApp = defineVirElementNoInputs({
         }
 
         .constraint-wrapper {
-            border: 2px solid;
+            border: 2px solid transparent;
             flex-shrink: 0;
             position: relative;
+        }
+
+        ${hostClassSelectors.showConstraints} .constraint-wrapper.max {
+            border-color: red;
+        }
+
+        ${hostClassSelectors.showConstraints} .constraint-wrapper.min {
+            border-color: lime;
+        }
+
+        ${hostClassSelectors.showConstraints} ${VirResizableImage} {
+            border-color: blue;
+        }
+
+        ${VirResizableImage} {
+            border: 1px solid transparent;
+            background-color: rgb(241, 241, 241);
+            border-radius: 8px;
+            flex-shrink: 0;
         }
 
         .constraint-wrapper.max {
             display: flex;
             align-items: center;
             justify-content: center;
-            border-color: red;
         }
 
         .constraint-wrapper.min {
-            border-color: lime;
             pointer-events: none;
         }
 
@@ -214,9 +228,7 @@ export const VirExampleApp = defineVirElementNoInputs({
             <a href="https://github.com/electrovir/resizable-image-element">
                 <h1>resizable-image-element</h1>
             </a>
-            <p>
-                Add more image URLs to the input below:
-            </p>
+            <p>Add more image URLs to the input below:</p>
             <${VirUrlInput}
                 ${assign(VirUrlInput, {
                     urls: ensuredImageUrls,
@@ -231,6 +243,21 @@ export const VirExampleApp = defineVirElementNoInputs({
                     });
                 })}
             ></${VirUrlInput}>
+            <p>
+                <label class="inline-label">
+                    <input
+                        type="checkbox"
+                        ?checked=${state.showConstraints}
+                        ${listen('input', (event) => {
+                            const checkbox = event.currentTarget as HTMLInputElement;
+                            updateState({
+                                showConstraints: !!checkbox.checked,
+                            });
+                        })}
+                    />
+                    Outline constraint boxes
+                </label>
+            </p>
             <p>
                 ${(
                     [
@@ -278,9 +305,7 @@ export const VirExampleApp = defineVirElementNoInputs({
                     `;
                 })}
             </p>
-            <div class="images-container">
-                ${renderImages(ensuredConstraints, state.imageUrls)}
-            </div>
+            <div class="images-container">${renderImages(ensuredConstraints, state.imageUrls)}</div>
         `;
     },
 });
@@ -300,15 +325,8 @@ function renderImages(
                 constraints.min.width,
             )}`;
             return html`
-                <div
-                    class="constraint-wrapper max"
-                    style=${maxStyle}
-                >
-                    <a
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        href=${imageUrl}
-                    >
+                <div class="constraint-wrapper max" style=${maxStyle}>
+                    <a target="_blank" rel="noopener noreferrer" href=${imageUrl}>
                         <${VirResizableImage}
                             ${assign(VirResizableImage, {
                                 imageUrl,
@@ -317,13 +335,8 @@ function renderImages(
                             })}
                         ></${VirResizableImage}>
                     </a>
-                    <div
-                        class="min-wrapper"
-                    >
-                        <div
-                            class="constraint-wrapper min"
-                            style=${minStyle}
-                        ></div>
+                    <div class="min-wrapper">
+                        <div class="constraint-wrapper min" style=${minStyle}></div>
                     </div>
                 </div>
             `;
