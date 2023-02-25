@@ -148,20 +148,23 @@ export function generateIframeDoc(
             }
 
             let retryCount = 0;
+            const maxRetryCount = 10;
 
             function repeatedlyPostSize() {
                 try {
                     postSize();
                 } catch (error) {
                     retryCount++;
-                    if (retryCount > 10) {
+                    if (retryCount > maxRetryCount) {
                         throw new Error(
-                            "Tried to get the '${imageData.imageType}' size for '${imageData.imageUrl}' over 10 times and failed.",
+                            "Tried to get the '${imageData.imageType}' size for '${imageData.imageUrl}' over '" +
+                                maxRetryCount +
+                                "' times and failed.",
                         );
                     }
                     setTimeout(() => {
                         repeatedlyPostSize();
-                    }, 100);
+                    }, 1000);
                 }
             }
 
@@ -233,7 +236,8 @@ export function generateIframeDoc(
                             document?.body?.querySelectorAll('video') ?? [],
                         );
                         videoElements.forEach((videoElement) => {
-                            videoElement.setAttribute('muted', '');
+                            videoElement.setAttribute('muted', true);
+                            videoElement.muted = true;
                         });
                     }
 
