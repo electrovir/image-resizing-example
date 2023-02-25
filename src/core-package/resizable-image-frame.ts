@@ -226,7 +226,9 @@ export function generateIframeDoc(
                     });
 
                     function muteVideos() {
-                        const videoElements = Array.from(document.body.querySelectorAll('video'));
+                        const videoElements = Array.from(
+                            document?.body?.querySelectorAll('video') ?? [],
+                        );
                         videoElements.forEach((videoElement) => {
                             videoElement.setAttribute('muted', '');
                         });
@@ -235,7 +237,7 @@ export function generateIframeDoc(
                     try {
                         muteVideos();
                         const mutationObserver = new MutationObserver(muteVideos);
-                        mutationObserver.observe(document.body, {childList: true, subtree: true});
+                        mutationObserver.observe(document, {childList: true, subtree: true});
                     } catch (error) {
                         console.error(error);
                     }
