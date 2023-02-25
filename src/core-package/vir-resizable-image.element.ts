@@ -19,9 +19,13 @@ export const VirResizableImage = defineElement<{
     /** The min image size constraints which the image will be resized to fit within. */
     min?: Dimensions | undefined;
     /** For hard-coding the original image size pre-scaling to fit the given constraints. */
-    originalImageSize?: Dimensions | undefined;
-    /** String of HTML that will be interpolated into the iframe source code. */
-    extraHTML?: string | undefined | TemplateResult;
+    forcedOriginalImageSize?: Dimensions | undefined;
+    /**
+     * String of HTML that will be interpolated into the iframe source code. To run any JS code
+     * before the image size calculations happen, create a <script> tag and set the
+     * "executeBeforeSizing" variable to a function.
+     */
+    extraHtml?: string | undefined | TemplateResult;
     /** Query selector to use to determine an html result's size. */
     htmlSizeQuerySelector?: string | undefined;
     /** When set to true, videos will not auto play. */
@@ -100,9 +104,9 @@ export const VirResizableImage = defineElement<{
                     });
                 },
                 trigger: {
-                    ...(filterObject(inputs, (key) => key !== 'extraHTML') as Omit<
+                    ...(filterObject(inputs, (key) => key !== 'extraHtml') as Omit<
                         typeof inputs,
-                        'extraHTML'
+                        'extraHtml'
                     >),
                 },
             },
@@ -139,18 +143,22 @@ export const VirResizableImage = defineElement<{
                         scrolling="no"
                         srcdoc=${generateIframeDoc(
                             resolvedImageData,
-                            inputs.extraHTML,
+                            inputs.extraHtml,
                             inputs.htmlSizeQuerySelector,
                         )}
-                        ${onDomCreated(async (rawIframe) => {
-                            handleIframe({
-                                iframe: rawIframe as HTMLIFrameElement,
-                                updateState,
-                                min: minConstraint,
-                                max: maxConstraint,
-                                host,
-                                imageData: resolvedImageData,
-                            });
+                        ${onDomCreated(async () => {
+                            try {
+                                await handleIframe({
+                                    updateState,
+                                    min: minConstraint,
+                                    max: maxConstraint,
+                                    host,
+                                    imageData: resolvedImageData,
+                                    forcedImageSize: inputs.forcedOriginalImageSize,
+                                });
+                            } catch (error) {
+                                console.error(error);
+                            }
                         })}
                     ></iframe>
                     <slot name="loaded"></slot>

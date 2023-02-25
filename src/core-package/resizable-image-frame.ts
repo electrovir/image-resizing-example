@@ -3,18 +3,19 @@ import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
 import {TemplateResult} from 'lit';
 import {ImageData} from './image-data';
-import {messageType} from './message-type';
+import {MessageDirection, MessageType} from './message';
 
 export function generateIframeDoc(
     imageData: ImageData,
-    extraHTML: string | TemplateResult | undefined,
+    extraHtml: string | TemplateResult | undefined,
     htmlSizeQuerySelector: string | undefined,
 ): string {
     const placeholder = Math.random();
 
-    const sizeScript = html`
+    const communicationScript = html`
         <script>
             const imageType = '${imageData.imageType}';
+            let forcedSize = undefined;
 
             function extractSvgSize(svgElement) {
                 const viewBox = svgElement.getAttribute('viewBox');
@@ -39,21 +40,13 @@ export function generateIframeDoc(
                 }
 
                 let size;
+                const rawWidth = window.getComputedStyle(element).width;
+                const rawHeight = window.getComputedStyle(element).height;
+                const width = Number(rawWidth.replace(/px$/, ''));
+                const height = Number(rawHeight.replace(/px$/, ''));
 
-                if (element instanceof HTMLImageElement) {
-                    size = {
-                        width: element.naturalWidth,
-                        height: element.naturalHeight,
-                    };
-                } else {
-                    const rawWidth = window.getComputedStyle(element).width;
-                    const rawHeight = window.getComputedStyle(element).height;
-                    const width = Number(rawWidth.replace(/px$/, ''));
-                    const height = Number(rawHeight.replace(/px$/, ''));
-
-                    if (width && height) {
-                        size = {height, width};
-                    }
+                if (width && height) {
+                    size = {height, width};
                 }
 
                 if (size) {
@@ -78,6 +71,13 @@ export function generateIframeDoc(
             }
 
             function getSvgSize() {
+                if (forcedSize) {
+                    const elements = document.body.querySelectorAll('*');
+                    elements.forEach((element) =>
+                        element.setAttribute('preserveAspectRatio', 'none'),
+                    );
+                }
+
                 const svgElements = Array.from(document.querySelectorAll('svg'));
 
                 if (!svgElements.length) {
@@ -90,7 +90,7 @@ export function generateIframeDoc(
                     throw new Error('Found no SVG element with dimensions');
                 }
 
-                const {height, width} = extractSvgSize(svgElement);
+                const {height, width} = forcedSize ?? extractSvgSize(svgElement);
 
                 if (!svgElement.getAttribute('viewBox')) {
                     svgElement.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
@@ -132,43 +132,95 @@ export function generateIframeDoc(
                 video: getVideoSize,
             };
 
-            function postSize() {
-                const size = sizeGrabbers[imageType]();
+            function getSize() {
+                return sizeGrabbers[imageType]();
+            }
 
-                if (!size.width || !size.height) {
-                    throw new Error('invalid size ' + JSON.stringify(size));
+            globalThis.addEventListener('message', async (messageEvent) => {
+                const message = messageEvent.data;
+
+                if (message.direction === '${MessageDirection.FromChild}') {
+                    return;
                 }
 
-                readyPromise.then(() => {
-                    globalThis.postMessage({
-                        type: '${messageType.detectedSize}',
-                        data: JSON.stringify(size),
-                    });
+                function sendMessageToParent(data) {
+                    const messageForParent = {
+                        type: message.type,
+                        direction: '${MessageDirection.FromChild}',
+                        data,
+                    };
+                    globalThis.postMessage(messageForParent);
+                }
+
+                switch (message.type) {
+                    case '${MessageType.Ready}': {
+                        if (!!document.querySelector('body')) {
+                            sendMessageToParent();
+                        }
+                        return;
+                    }
+                    case '${MessageType.SendScale}': {
+                        const scaleDimensions = message.data;
+
+                        document
+                            .querySelector('body')
+                            .style.setProperty(
+                                'transform',
+                                'scaleX(' +
+                                    scaleDimensions.width +
+                                    ') scaleY(' +
+                                    scaleDimensions.height +
+                                    ')',
+                            );
+                        return sendMessageToParent();
+                    }
+                    case '${MessageType.SendScalingMethod}': {
+                        if (message.data === 'crisp') {
+                            document.body.classList.add('crisp');
+                        } else {
+                            document.body.classList.remove('crisp');
+                        }
+                        return sendMessageToParent();
+                    }
+                    case '${MessageType.SendSize}': {
+                        try {
+                            await executeBeforeSizing();
+                            const size = getSize();
+
+                            sendMessageToParent(size);
+                        } catch (error) {}
+                        return;
+                    }
+                    case '${MessageType.ForceSize}': {
+                        try {
+                            forcedSize = message.data;
+                            getSize();
+                            sendMessageToParent();
+                        } catch (error) {}
+                        return;
+                    }
+                }
+            });
+
+            function muteEverything() {
+                const videoElements = Array.from(document?.body?.querySelectorAll('video') ?? []);
+                const audioElements = Array.from(document?.body?.querySelectorAll('audio') ?? []);
+                [
+                    ...videoElements,
+                    ...audioElements,
+                ].forEach((videoElement) => {
+                    videoElement.setAttribute('muted', true);
+                    videoElement.muted = true;
                 });
             }
 
-            let retryCount = 0;
-            const maxRetryCount = 100;
-
-            function repeatedlyPostSize() {
-                try {
-                    postSize();
-                } catch (error) {
-                    retryCount++;
-                    if (retryCount > maxRetryCount) {
-                        throw new Error(
-                            "Tried to get the '${imageData.imageType}' size for '${imageData.imageUrl}' over '" +
-                                maxRetryCount +
-                                "' times and failed.",
-                        );
-                    }
-                    setTimeout(() => {
-                        repeatedlyPostSize();
-                    }, Math.min(retryCount * 50, 1000));
-                }
+            try {
+                muteEverything();
+                const mutationObserver = new MutationObserver(muteEverything);
+                mutationObserver.observe(document, {childList: true, subtree: true});
+            } catch (error) {
+                console.error(error);
             }
-
-            repeatedlyPostSize();
         </script>
     `;
 
@@ -207,57 +259,13 @@ export function generateIframeDoc(
                     }
                 </style>
                 <script>
-                    let resolve;
-                    const readyPromise = new Promise((innerResolve) => {
-                        resolve = innerResolve;
-                    });
-                    globalThis.addEventListener('message', (messageEvent) => {
-                        if (messageEvent.data.type === '${messageType.readyPing}') {
-                            resolve();
-                            globalThis.postMessage({type: '${messageType.readyPong}'});
-                        } else if (messageEvent.data.type === '${messageType.setScale}') {
-                            document
-                                .querySelector('body')
-                                .style.setProperty(
-                                    'transform',
-                                    'scale(' + messageEvent.data.data + ')',
-                                );
-                        } else if (messageEvent.data.type === '${messageType.setScalingMethod}') {
-                            if (messageEvent.data.data === 'crisp') {
-                                document.body.classList.add('crisp');
-                            } else {
-                                document.body.classList.remove('crisp');
-                            }
-                        }
-                    });
-
-                    function muteEverything() {
-                        const videoElements = Array.from(
-                            document?.body?.querySelectorAll('video') ?? [],
-                        );
-                        const audioElements = Array.from(
-                            document?.body?.querySelectorAll('audio') ?? [],
-                        );
-                        [
-                            ...videoElements,
-                            ...audioElements,
-                        ].forEach((videoElement) => {
-                            videoElement.setAttribute('muted', true);
-                            videoElement.muted = true;
-                        });
-                    }
-
-                    try {
-                        muteEverything();
-                        const mutationObserver = new MutationObserver(muteEverything);
-                        mutationObserver.observe(document, {childList: true, subtree: true});
-                    } catch (error) {
-                        console.error(error);
-                    }
+                    var executeBeforeSizing = () => {
+                        return undefined;
+                    };
                 </script>
             </head>
             <body>
-                ${placeholder} ${sizeScript} ${extraHTML ?? ''}
+                ${placeholder} ${extraHtml ?? ''} ${communicationScript}
             </body>
         </html>
     `;

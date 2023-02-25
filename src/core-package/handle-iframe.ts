@@ -8,88 +8,104 @@ import {
     scaleToConstraints,
 } from './augments/dimensions';
 import {ImageData, ImageType} from './image-data';
-import {messageType} from './message-type';
+import {MessageType, sendPingPongMessage} from './message';
 import {ResizableImageState} from './resizable-image-state';
 
 export type handleIframeInputs = {
-    iframe: HTMLIFrameElement;
     updateState: UpdateStateCallback<ResizableImageState>;
     min: Dimensions | undefined;
     max: Dimensions | undefined;
     host: HTMLElement;
     imageData: ImageData;
+    forcedImageSize: Dimensions | undefined;
 };
 
-export async function handleIframe(inputs: handleIframeInputs) {
-    inputs.iframe.onload = async () => {
-        let gotPong = false;
-        const startTime = Date.now();
-        while (!inputs.iframe.contentWindow) {
-            await wait(100);
-            if (Date.now() - startTime > 30_000) {
-                throw new Error(
-                    `Took over 10 seconds for the vir-resizable-image iframe's content window to appear.`,
-                );
-            }
-        }
-        const iframeWindow = inputs.iframe.contentWindow;
-        iframeWindow.addEventListener('message', (messageEvent) => {
-            if (
-                messageEvent.data.type === messageType.readyPing ||
-                messageEvent.data.type === messageType.setScalingMethod
-            ) {
-                return;
-            } else if (messageEvent.data.type === messageType.readyPong) {
-                gotPong = true;
-                return;
-            } else if (messageEvent.data.type === messageType.detectedSize) {
-                const data = JSON.parse(messageEvent.data.data);
-                const width = Number(data.width);
-                const height = Number(data.height);
-
-                if (!isNaN(width) && !isNaN(height)) {
-                    const imageDimensions: Dimensions = {width, height};
-                    handleLoadedImageSize({
-                        updateState: inputs.updateState,
-                        min: inputs.min,
-                        max: inputs.max,
-                        iframeWindow,
-                        imageDimensions,
-                        host: inputs.host,
-                        imageData: inputs.imageData,
-                    });
-                } else {
-                    console.warn(
-                        `Got bad data from vir-resizable-image image iframe: ${JSON.stringify(
-                            data,
-                        )}`,
-                    );
-                }
-            }
-        });
-        while (!gotPong) {
-            iframeWindow.postMessage({type: messageType.readyPing});
-            await wait(100);
-        }
-    };
+function getIframeContentWindow(host: HTMLElement) {
+    return host.shadowRoot!.querySelector('iframe')?.contentWindow;
 }
 
-function handleLoadedImageSize({
+const maxContentWindowWaitTime = 60_000;
+
+export async function handleIframe({
     updateState,
     min,
     max,
-    iframeWindow,
+    host,
+    imageData,
+    forcedImageSize,
+}: handleIframeInputs) {
+    const startTime = Date.now();
+    while (!getIframeContentWindow(host)) {
+        await wait(100);
+        if (Date.now() - startTime > maxContentWindowWaitTime) {
+            throw new Error(
+                `Took over ${Math.floor(
+                    maxContentWindowWaitTime / 1000,
+                )} seconds for the vir-resizable-image iframe's content window to appear for '${
+                    imageData.imageUrl
+                }'`,
+            );
+        }
+    }
+
+    await sendPingPongMessage({
+        message: {
+            type: MessageType.Ready,
+        },
+        imageUrl: imageData.imageUrl,
+        getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+    });
+    await sendPingPongMessage({
+        message: {
+            type: MessageType.ForceSize,
+            data: forcedImageSize,
+        },
+        imageUrl: imageData.imageUrl,
+        getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+    });
+
+    const imageDimensions = await sendPingPongMessage({
+        message: {
+            type: MessageType.SendSize,
+        },
+        imageUrl: imageData.imageUrl,
+        getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+        verifyData: (size) => {
+            return !isNaN(size.width) && !isNaN(size.height) && !!size.width && !!size.height;
+        },
+    });
+
+    await handleLoadedImageSize({
+        updateState,
+        min,
+        max,
+        imageDimensions,
+        host,
+        imageData,
+        forcedImageSize,
+    });
+
+    updateState({
+        settled: true,
+    });
+}
+
+async function handleLoadedImageSize({
+    updateState,
+    min,
+    max,
     imageDimensions,
     host,
     imageData,
+    forcedImageSize,
 }: {
     updateState: UpdateStateCallback<ResizableImageState>;
     min: Dimensions | undefined;
     max: Dimensions | undefined;
-    iframeWindow: Window;
     imageDimensions: Dimensions;
     host: HTMLElement;
     imageData: ImageData;
+    forcedImageSize: Dimensions | undefined;
 }) {
     const frameConstraintDiv = host.shadowRoot!.querySelector('.frame-constraint');
     if (!(frameConstraintDiv instanceof HTMLElement)) {
@@ -99,7 +115,7 @@ function handleLoadedImageSize({
     const newImageSize: Dimensions = scaleToConstraints({
         min,
         max,
-        box: imageDimensions,
+        box: forcedImageSize ?? imageDimensions,
     });
 
     frameConstraintDiv.style.width = addPx(Math.floor(newImageSize.width));
@@ -126,21 +142,50 @@ function handleLoadedImageSize({
     const ratio = calculateRatio({
         min,
         max,
-        box: imageDimensions,
+        box: forcedImageSize ?? imageDimensions,
     });
 
     if (ratio > 3) {
-        iframeWindow.postMessage({type: messageType.setScalingMethod, data: 'crisp'});
+        await sendPingPongMessage({
+            message: {
+                type: MessageType.SendScalingMethod,
+                data: 'crisp',
+            },
+            imageUrl: imageData.imageUrl,
+            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+        });
     } else {
-        iframeWindow.postMessage({type: messageType.setScalingMethod, data: 'default'});
-    }
-
-    if (imageData.imageType === ImageType.Html) {
-        iframeWindow.postMessage({
-            type: messageType.setScale,
-            data: ratio,
+        await sendPingPongMessage({
+            message: {
+                type: MessageType.SendScalingMethod,
+                data: 'default',
+            },
+            imageUrl: imageData.imageUrl,
+            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
         });
     }
 
-    updateState({settled: true});
+    if (imageData.imageType === ImageType.Html) {
+        const forcedScales: Dimensions = forcedImageSize
+            ? {
+                  width: forcedImageSize.width / imageDimensions.width,
+                  height: forcedImageSize.height / imageDimensions.height,
+              }
+            : {
+                  width: 1,
+                  height: 1,
+              };
+        const scales: Dimensions = {
+            width: ratio * forcedScales.width,
+            height: ratio * forcedScales.height,
+        };
+        await sendPingPongMessage({
+            message: {
+                type: MessageType.SendScale,
+                data: scales,
+            },
+            imageUrl: imageData.imageUrl,
+            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+        });
+    }
 }
