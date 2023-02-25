@@ -220,7 +220,7 @@ export function generateIframeDoc(
                                 .querySelector('body')
                                 .style.setProperty(
                                     'transform',
-                                    \`scale(\${messageEvent.data.data})\`,
+                                    'scale(' + messageEvent.data.data + ')',
                                 );
                         } else if (messageEvent.data.type === '${messageType.setScalingMethod}') {
                             if (messageEvent.data.data === 'crisp') {
@@ -231,19 +231,25 @@ export function generateIframeDoc(
                         }
                     });
 
-                    function muteVideos() {
+                    function muteEverything() {
                         const videoElements = Array.from(
                             document?.body?.querySelectorAll('video') ?? [],
                         );
-                        videoElements.forEach((videoElement) => {
+                        const audioElements = Array.from(
+                            document?.body?.querySelectorAll('audio') ?? [],
+                        );
+                        [
+                            ...videoElements,
+                            ...audioElements,
+                        ].forEach((videoElement) => {
                             videoElement.setAttribute('muted', true);
                             videoElement.muted = true;
                         });
                     }
 
                     try {
-                        muteVideos();
-                        const mutationObserver = new MutationObserver(muteVideos);
+                        muteEverything();
+                        const mutationObserver = new MutationObserver(muteEverything);
                         mutationObserver.observe(document, {childList: true, subtree: true});
                     } catch (error) {
                         console.error(error);
