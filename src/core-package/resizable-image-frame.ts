@@ -175,10 +175,10 @@ export function generateIframeDoc(
                         return sendMessageToParent();
                     }
                     case '${MessageType.SendScalingMethod}': {
-                        if (message.data === 'crisp') {
-                            document.body.classList.add('crisp');
+                        if (message.data === 'pixelated') {
+                            document.body.classList.add('pixelated');
                         } else {
-                            document.body.classList.remove('crisp');
+                            document.body.classList.remove('pixelated');
                         }
                         return sendMessageToParent();
                     }
@@ -254,8 +254,8 @@ export function generateIframeDoc(
                         display: block;
                     }
 
-                    .crisp {
-                        image-rendering: crisp-edges;
+                    .pixelated {
+                        image-rendering: pixelated;
                     }
                 </style>
                 <script>

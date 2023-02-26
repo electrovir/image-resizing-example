@@ -18,6 +18,7 @@ export type handleIframeInputs = {
     host: HTMLElement;
     imageData: ImageData;
     forcedFinalImageSize: Dimensions | undefined;
+    forcedOriginalImageSize: Dimensions | undefined;
 };
 
 function getIframeContentWindow(host: HTMLElement) {
@@ -33,6 +34,7 @@ export async function handleIframe({
     host,
     imageData,
     forcedFinalImageSize,
+    forcedOriginalImageSize,
 }: handleIframeInputs) {
     const startTime = Date.now();
     while (!getIframeContentWindow(host)) {
@@ -64,16 +66,18 @@ export async function handleIframe({
         getMessageContext: () => getIframeContentWindow(host) ?? undefined,
     });
 
-    const imageDimensions = await sendPingPongMessage({
-        message: {
-            type: MessageType.SendSize,
-        },
-        imageUrl: imageData.imageUrl,
-        getMessageContext: () => getIframeContentWindow(host) ?? undefined,
-        verifyData: (size) => {
-            return !isNaN(size.width) && !isNaN(size.height) && !!size.width && !!size.height;
-        },
-    });
+    const imageDimensions =
+        forcedOriginalImageSize ??
+        (await sendPingPongMessage({
+            message: {
+                type: MessageType.SendSize,
+            },
+            imageUrl: imageData.imageUrl,
+            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+            verifyData: (size) => {
+                return !isNaN(size.width) && !isNaN(size.height) && !!size.width && !!size.height;
+            },
+        }));
 
     await handleLoadedImageSize({
         updateState,
@@ -149,7 +153,7 @@ async function handleLoadedImageSize({
         await sendPingPongMessage({
             message: {
                 type: MessageType.SendScalingMethod,
-                data: 'crisp',
+                data: 'pixelated',
             },
             imageUrl: imageData.imageUrl,
             getMessageContext: () => getIframeContentWindow(host) ?? undefined,

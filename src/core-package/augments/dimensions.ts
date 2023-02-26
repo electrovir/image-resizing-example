@@ -83,8 +83,8 @@ export function scaleToConstraints({min, max, box}: OptionalConstraintsWithBox):
 
     const resizedBox = factorDimensions({box, ratio});
     return {
-        height: resizedBox.height || min?.height || 250, // 250 = idk we have to pick SOMETHING
-        width: resizedBox.width || min?.width || 250, // 250 = idk we have to pick SOMETHING
+        height: Math.floor(resizedBox.height || min?.height || 250), // 250 = idk we have to pick SOMETHING
+        width: Math.floor(resizedBox.width || min?.width || 250), // 250 = idk we have to pick SOMETHING
     };
 }
 

@@ -27,7 +27,7 @@ export type MessageData = {
         [MessageDirection.FromChild]: undefined;
     };
     [MessageType.SendScalingMethod]: {
-        [MessageDirection.FromParent]: 'crisp' | 'default';
+        [MessageDirection.FromParent]: 'pixelated' | 'default';
         [MessageDirection.FromChild]: undefined;
     };
     [MessageType.ForceSize]: {

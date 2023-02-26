@@ -4,7 +4,6 @@ import {ImageData} from './image-data';
 export const defaultResizableImageState = {
     imageData: asyncState<ImageData>(),
     shouldVerticallyCenter: false,
-    shouldUseCrispScaling: false,
     settled: false,
 };
 

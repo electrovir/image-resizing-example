@@ -1,8 +1,7 @@
 import {extractErrorMessage, filterObject, wait} from '@augment-vir/common';
 import {css, defineElement, html, onDomCreated, renderAsyncState} from 'element-vir';
 import type {TemplateResult} from 'lit';
-import {classMap} from 'lit/directives/class-map.js';
-import {clampDimensions, Dimensions} from './augments/dimensions';
+import {clampDimensions, Dimensions, scaleToConstraints} from './augments/dimensions';
 import {handleIframe} from './handle-iframe';
 import {getImageData, ImageType} from './image-data';
 import {generateIframeDoc} from './resizable-image-frame';
@@ -18,8 +17,13 @@ export const VirResizableImage = defineElement<{
     max?: Dimensions | undefined;
     /** The min image size constraints which the image will be resized to fit within. */
     min?: Dimensions | undefined;
-    /** For hard-coding the final image size. */
+    /** For hard-coding the final image size. Setting this can cause distortions. */
     forcedFinalImageSize?: Dimensions | undefined;
+    /**
+     * This force the image's dimensions instead of trying to automatically detect the image's
+     * dimensions.
+     */
+    forcedOriginalImageSize?: Dimensions | undefined;
     /**
      * String of HTML that will be interpolated into the iframe source code. To run any JS code
      * before the image size calculations happen, create a <script> tag and set the
@@ -28,7 +32,10 @@ export const VirResizableImage = defineElement<{
     extraHtml?: string | undefined | TemplateResult;
     /** Query selector to use to determine an html result's size. */
     htmlSizeQuerySelector?: string | undefined;
-    /** When set to true, videos will not auto play. */
+    /**
+     * When set to true, videos will not auto play their video (audio is always programmatically
+     * muted).
+     */
     blockAutoPlay?: boolean | undefined;
 }>()({
     tagName: 'vir-resizable-image',
@@ -125,6 +132,15 @@ export const VirResizableImage = defineElement<{
               `
             : '';
 
+        const clampedForcedOriginalImageSize: Dimensions | undefined =
+            inputs.forcedOriginalImageSize
+                ? scaleToConstraints({
+                      min: minConstraint,
+                      max: maxConstraint,
+                      box: inputs.forcedOriginalImageSize,
+                  })
+                : undefined;
+
         const iframeTemplate = renderAsyncState(
             state.imageData,
             html`
@@ -133,11 +149,11 @@ export const VirResizableImage = defineElement<{
                 </div>
             `,
             (resolvedImageData) => {
+                if (inputs.forcedOriginalImageSize) {
+                }
+
                 return html`
                     <iframe
-                        class=${classMap({
-                            'crisp-scaling': state.shouldUseCrispScaling,
-                        })}
                         loading="lazy"
                         referrerpolicy="no-referrer"
                         scrolling="no"
@@ -155,6 +171,7 @@ export const VirResizableImage = defineElement<{
                                     host,
                                     imageData: resolvedImageData,
                                     forcedFinalImageSize: inputs.forcedFinalImageSize,
+                                    forcedOriginalImageSize: clampedForcedOriginalImageSize,
                                 });
                             } catch (error) {
                                 console.error(error);
@@ -195,16 +212,21 @@ export const VirResizableImage = defineElement<{
             () => '',
         );
 
-        const frameConstraintMinStyles =
+        const frameConstraintStyles =
             state.imageData instanceof Error
                 ? css`
                       max-width: 100%;
                       max-height: 100%;
                   `
+                : clampedForcedOriginalImageSize
+                ? css`
+                      width: ${clampedForcedOriginalImageSize.width}px;
+                      height: ${clampedForcedOriginalImageSize.height}px;
+                  `
                 : '';
 
         return html`
-            <div class="frame-constraint" style=${frameConstraintMinStyles}>${iframeTemplate}</div>
+            <div class="frame-constraint" style=${frameConstraintStyles}>${iframeTemplate}</div>
             ${clickCoverTemplate}
         `;
     },
