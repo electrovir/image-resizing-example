@@ -17,7 +17,7 @@ export type handleIframeInputs = {
     max: Dimensions | undefined;
     host: HTMLElement;
     imageData: ImageData;
-    forcedImageSize: Dimensions | undefined;
+    forcedFinalImageSize: Dimensions | undefined;
 };
 
 function getIframeContentWindow(host: HTMLElement) {
@@ -32,7 +32,7 @@ export async function handleIframe({
     max,
     host,
     imageData,
-    forcedImageSize,
+    forcedFinalImageSize,
 }: handleIframeInputs) {
     const startTime = Date.now();
     while (!getIframeContentWindow(host)) {
@@ -58,7 +58,7 @@ export async function handleIframe({
     await sendPingPongMessage({
         message: {
             type: MessageType.ForceSize,
-            data: forcedImageSize,
+            data: forcedFinalImageSize,
         },
         imageUrl: imageData.imageUrl,
         getMessageContext: () => getIframeContentWindow(host) ?? undefined,
@@ -82,7 +82,7 @@ export async function handleIframe({
         imageDimensions,
         host,
         imageData,
-        forcedImageSize,
+        forcedFinalImageSize,
     });
 
     updateState({
@@ -97,7 +97,7 @@ async function handleLoadedImageSize({
     imageDimensions,
     host,
     imageData,
-    forcedImageSize,
+    forcedFinalImageSize,
 }: {
     updateState: UpdateStateCallback<ResizableImageState>;
     min: Dimensions | undefined;
@@ -105,7 +105,7 @@ async function handleLoadedImageSize({
     imageDimensions: Dimensions;
     host: HTMLElement;
     imageData: ImageData;
-    forcedImageSize: Dimensions | undefined;
+    forcedFinalImageSize: Dimensions | undefined;
 }) {
     const frameConstraintDiv = host.shadowRoot!.querySelector('.frame-constraint');
     if (!(frameConstraintDiv instanceof HTMLElement)) {
@@ -115,7 +115,7 @@ async function handleLoadedImageSize({
     const newImageSize: Dimensions = scaleToConstraints({
         min,
         max,
-        box: forcedImageSize ?? imageDimensions,
+        box: forcedFinalImageSize ?? imageDimensions,
     });
 
     frameConstraintDiv.style.width = addPx(Math.floor(newImageSize.width));
@@ -142,7 +142,7 @@ async function handleLoadedImageSize({
     const ratio = calculateRatio({
         min,
         max,
-        box: forcedImageSize ?? imageDimensions,
+        box: forcedFinalImageSize ?? imageDimensions,
     });
 
     if (ratio > 3) {
@@ -166,10 +166,10 @@ async function handleLoadedImageSize({
     }
 
     if (imageData.imageType === ImageType.Html) {
-        const forcedScales: Dimensions = forcedImageSize
+        const forcedScales: Dimensions = forcedFinalImageSize
             ? {
-                  width: forcedImageSize.width / imageDimensions.width,
-                  height: forcedImageSize.height / imageDimensions.height,
+                  width: forcedFinalImageSize.width / imageDimensions.width,
+                  height: forcedFinalImageSize.height / imageDimensions.height,
               }
             : {
                   width: 1,

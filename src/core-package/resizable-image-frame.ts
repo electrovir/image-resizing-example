@@ -15,7 +15,7 @@ export function generateIframeDoc(
     const communicationScript = html`
         <script>
             const imageType = '${imageData.imageType}';
-            let forcedSize = undefined;
+            let forcedFinalImageSize = undefined;
 
             function extractSvgSize(svgElement) {
                 const viewBox = svgElement.getAttribute('viewBox');
@@ -71,7 +71,7 @@ export function generateIframeDoc(
             }
 
             function getSvgSize() {
-                if (forcedSize) {
+                if (forcedFinalImageSize) {
                     const elements = document.body.querySelectorAll('*');
                     elements.forEach((element) =>
                         element.setAttribute('preserveAspectRatio', 'none'),
@@ -90,7 +90,7 @@ export function generateIframeDoc(
                     throw new Error('Found no SVG element with dimensions');
                 }
 
-                const {height, width} = forcedSize ?? extractSvgSize(svgElement);
+                const {height, width} = forcedFinalImageSize ?? extractSvgSize(svgElement);
 
                 if (!svgElement.getAttribute('viewBox')) {
                     svgElement.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
@@ -193,7 +193,7 @@ export function generateIframeDoc(
                     }
                     case '${MessageType.ForceSize}': {
                         try {
-                            forcedSize = message.data;
+                            forcedFinalImageSize = message.data;
                             getSize();
                             sendMessageToParent();
                         } catch (error) {}

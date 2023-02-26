@@ -18,8 +18,8 @@ export const VirResizableImage = defineElement<{
     max?: Dimensions | undefined;
     /** The min image size constraints which the image will be resized to fit within. */
     min?: Dimensions | undefined;
-    /** For hard-coding the original image size pre-scaling to fit the given constraints. */
-    forcedOriginalImageSize?: Dimensions | undefined;
+    /** For hard-coding the final image size. */
+    forcedFinalImageSize?: Dimensions | undefined;
     /**
      * String of HTML that will be interpolated into the iframe source code. To run any JS code
      * before the image size calculations happen, create a <script> tag and set the
@@ -154,7 +154,7 @@ export const VirResizableImage = defineElement<{
                                     max: maxConstraint,
                                     host,
                                     imageData: resolvedImageData,
-                                    forcedImageSize: inputs.forcedOriginalImageSize,
+                                    forcedFinalImageSize: inputs.forcedFinalImageSize,
                                 });
                             } catch (error) {
                                 console.error(error);
