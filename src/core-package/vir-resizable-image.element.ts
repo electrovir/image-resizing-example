@@ -11,7 +11,7 @@ const defaultClickCover = html`
     <div class="click-cover"></div>
 `;
 
-export const VirResizableImage = defineElement<{
+export type VirResizableImageInputs = {
     imageUrl: string;
     /** The max image size constraints which the image will be resized to fit within. */
     max?: Dimensions | undefined;
@@ -37,7 +37,9 @@ export const VirResizableImage = defineElement<{
      * muted).
      */
     blockAutoPlay?: boolean | undefined;
-}>()({
+};
+
+export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: 'vir-resizable-image',
     stateInit: defaultResizableImageState,
     hostClasses: {
