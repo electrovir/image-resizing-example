@@ -7,6 +7,7 @@ import {
     Dimensions,
     scaleToConstraints,
 } from './augments/dimensions';
+import {makeAttemptWaitDuration} from './augments/duration';
 import {ImageData, ImageType} from './image-data';
 import {MessageType, sendPingPongMessage} from './message';
 import {ResizableImageState} from './resizable-image-state';
@@ -37,8 +38,9 @@ export async function handleIframe({
     forcedOriginalImageSize,
 }: handleIframeInputs) {
     const startTime = Date.now();
+    let trialAttempt = 0;
     while (!getIframeContentWindow(host)) {
-        await wait(100);
+        await wait(makeAttemptWaitDuration(trialAttempt));
         if (Date.now() - startTime > maxContentWindowWaitTime) {
             throw new Error(
                 `Took over ${Math.floor(
@@ -48,6 +50,7 @@ export async function handleIframe({
                 }'`,
             );
         }
+        trialAttempt++;
     }
 
     await sendPingPongMessage({

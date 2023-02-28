@@ -1,5 +1,6 @@
 import {ensureError, wait} from '@augment-vir/common';
 import {Dimensions} from './augments/dimensions';
+import {makeAttemptWaitDuration} from './augments/duration';
 
 /**
  * These ping and pong messages are used to prevent race conditions between loading the iframe,
@@ -145,8 +146,7 @@ export async function sendPingPongMessage<MessageTypeGeneric extends MessageType
     const startTime = Date.now();
 
     while (!validResponseReceived && tryCount < maxTryCount && !listenerError) {
-        const waitDuration = Math.min(Math.floor(Math.pow(tryCount, 1.5)) * 100, 5000);
-        await wait(waitDuration);
+        await wait(makeAttemptWaitDuration(tryCount));
         const newContext = getMessageContext();
 
         if (newContext) {
