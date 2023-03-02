@@ -183,22 +183,25 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             state.imageData,
             '',
             (resolvedImageData) => {
-                if (inputs.forcedOriginalImageSize) {
-                }
+                const previousFrameHtml: string | undefined =
+                    state.frameFullHtml?.imageUrl === resolvedImageData.imageUrl
+                        ? state.frameFullHtml.html
+                        : undefined;
 
                 return html`
                     <iframe
                         loading="lazy"
                         referrerpolicy="no-referrer"
                         scrolling="no"
-                        srcdoc=${generateIframeDoc(
+                        srcdoc=${previousFrameHtml ||
+                        generateIframeDoc(
                             resolvedImageData,
                             inputs.extraHtml,
                             inputs.htmlSizeQuerySelector,
                         )}
                         ${onDomCreated(async () => {
                             try {
-                                await handleIframe({
+                                const latestFrameSource = await handleIframe({
                                     updateState,
                                     min: minConstraint,
                                     max: maxConstraint,
@@ -208,6 +211,12 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                     forcedOriginalImageSize: clampedForcedOriginalImageSize,
                                 });
                                 setSettled(true);
+                                updateState({
+                                    frameFullHtml: {
+                                        imageUrl: resolvedImageData.imageUrl,
+                                        html: latestFrameSource,
+                                    },
+                                });
                             } catch (error) {
                                 console.error(error);
                             }

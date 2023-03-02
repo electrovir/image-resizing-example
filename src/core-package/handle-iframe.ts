@@ -36,7 +36,7 @@ export async function handleIframe({
     imageData,
     forcedFinalImageSize,
     forcedOriginalImageSize,
-}: handleIframeInputs) {
+}: handleIframeInputs): Promise<string> {
     const startTime = Date.now();
     let trialAttempt = 0;
     while (!getIframeContentWindow(host)) {
@@ -60,14 +60,17 @@ export async function handleIframe({
         imageUrl: imageData.imageUrl,
         getMessageContext: () => getIframeContentWindow(host) ?? undefined,
     });
-    await sendPingPongMessage({
-        message: {
-            type: MessageType.ForceSize,
-            data: forcedFinalImageSize,
-        },
-        imageUrl: imageData.imageUrl,
-        getMessageContext: () => getIframeContentWindow(host) ?? undefined,
-    });
+
+    if (forcedFinalImageSize) {
+        await sendPingPongMessage({
+            message: {
+                type: MessageType.ForceSize,
+                data: forcedFinalImageSize,
+            },
+            imageUrl: imageData.imageUrl,
+            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+        });
+    }
 
     const imageDimensions =
         forcedOriginalImageSize ??
@@ -92,7 +95,7 @@ export async function handleIframe({
         forcedFinalImageSize,
     });
 
-    return;
+    return getIframeContentWindow(host)!.document.documentElement.outerHTML;
 }
 
 async function handleLoadedImageSize({
