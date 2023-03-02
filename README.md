@@ -14,7 +14,7 @@ Exports a native web element, `VirResizableImage` (for use in [`element-vir`](ht
 -   [x] handles `viewBox` attributes missing on the top SVG (but existing on a nested SVG element)
 -   [x] allows for arbitrary manipulation of SVG code to account for errors in the original SVG code
 -   [x] handles race conditions between loading the image and determining its size
--   [x] handles the many race conditions between iframes loading and communicating back and forth wit them
+-   [x] handles the many race conditions between iframe loading and communicating back and forth wit them
 
 ## Example
 
