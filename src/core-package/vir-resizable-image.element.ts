@@ -1,5 +1,12 @@
 import {extractErrorMessage, filterObject, wait} from '@augment-vir/common';
-import {css, defineElement, html, onDomCreated, renderAsyncState} from 'element-vir';
+import {
+    css,
+    defineElement,
+    defineElementEvent,
+    html,
+    onDomCreated,
+    renderAsyncState,
+} from 'element-vir';
 import type {TemplateResult} from 'lit';
 import {clampDimensions, Dimensions, scaleToConstraints} from './augments/dimensions';
 import {handleIframe} from './handle-iframe';
@@ -44,6 +51,9 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     stateInit: defaultResizableImageState,
     hostClasses: {
         verticallyCenter: ({state}) => state.shouldVerticallyCenter,
+    },
+    events: {
+        settled: defineElementEvent<boolean>(),
     },
     styles: ({hostClassSelectors}) => css`
         :host {
@@ -98,12 +108,17 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             height: calc(100% + 1px);
         }
     `,
-    renderCallback: ({state, inputs, updateState, host}) => {
+    renderCallback: ({state, inputs, updateState, host, dispatch, events}) => {
+        function setSettled(value: boolean) {
+            updateState({settled: value});
+            dispatch(new events.settled(value));
+        }
+
         updateState({
             imageData: {
                 createPromise: async () => {
+                    setSettled(false);
                     updateState({
-                        settled: false,
                         shouldVerticallyCenter: false,
                     });
                     return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay).catch(async () => {
@@ -175,6 +190,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                     forcedFinalImageSize: inputs.forcedFinalImageSize,
                                     forcedOriginalImageSize: clampedForcedOriginalImageSize,
                                 });
+                                setSettled(true);
                             } catch (error) {
                                 console.error(error);
                             }

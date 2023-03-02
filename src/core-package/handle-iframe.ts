@@ -92,9 +92,7 @@ export async function handleIframe({
         forcedFinalImageSize,
     });
 
-    updateState({
-        settled: true,
-    });
+    return;
 }
 
 async function handleLoadedImageSize({
