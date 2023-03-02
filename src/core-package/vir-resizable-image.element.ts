@@ -1,4 +1,4 @@
-import {extractErrorMessage, filterObject, wait} from '@augment-vir/common';
+import {ensureError, extractErrorMessage, filterObject, wait} from '@augment-vir/common';
 import {
     css,
     defineElement,
@@ -8,6 +8,7 @@ import {
     renderAsyncState,
 } from 'element-vir';
 import type {TemplateResult} from 'lit';
+import {classMap} from 'lit/directives/class-map.js';
 import {clampDimensions, Dimensions, scaleToConstraints} from './augments/dimensions';
 import {handleIframe} from './handle-iframe';
 import {getImageData, ImageType} from './image-data';
@@ -54,6 +55,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     },
     events: {
         settled: defineElementEvent<boolean>(),
+        errored: defineElementEvent<Error>(),
     },
     styles: ({hostClassSelectors}) => css`
         :host {
@@ -61,6 +63,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             box-sizing: content-box;
             display: flex;
             justify-content: center;
+            background-color: white;
             overflow: hidden;
         }
 
@@ -84,6 +87,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
         .frame-constraint {
             position: relative;
             transition: 100ms;
+            z-index: 100;
         }
 
         .error-wrapper,
@@ -97,6 +101,19 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             justify-content: center;
             text-align: center;
             word-break: break-word;
+        }
+
+        .loading-wrapper {
+            position: absolute;
+            z-index: 200;
+            background-color: inherit;
+            transition: 500ms;
+            opacity: 1;
+            pointer-events: none;
+        }
+
+        .hide-loading-wrapper {
+            opacity: 0;
         }
 
         iframe {
@@ -121,11 +138,18 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                     updateState({
                         shouldVerticallyCenter: false,
                     });
-                    return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay).catch(async () => {
+                    try {
+                        return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay);
+                    } catch (error) {
                         // try again
                         await wait(1000);
-                        return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay);
-                    });
+                        try {
+                            return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay);
+                        } catch (error) {
+                            dispatch(new events.errored(ensureError(error)));
+                            throw error;
+                        }
+                    }
                 },
                 trigger: {
                     ...(filterObject(inputs, (key) => key !== 'extraHtml') as Omit<
@@ -142,13 +166,6 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                 : inputs.min;
         const maxConstraint = inputs.max;
 
-        const loadingWrapperStyles = minConstraint
-            ? css`
-                  min-width: ${minConstraint.width}px;
-                  min-height: ${minConstraint.height}px;
-              `
-            : '';
-
         const clampedForcedOriginalImageSize: Dimensions | undefined =
             inputs.forcedOriginalImageSize
                 ? scaleToConstraints({
@@ -160,11 +177,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
 
         const iframeTemplate = renderAsyncState(
             state.imageData,
-            html`
-                <div class="loading-wrapper" style=${loadingWrapperStyles}>
-                    <slot name="loading">Loading...</slot>
-                </div>
-            `,
+            '',
             (resolvedImageData) => {
                 if (inputs.forcedOriginalImageSize) {
                 }
@@ -200,6 +213,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                 `;
             },
             (error) => {
+                dispatch(new events.errored(ensureError(error)));
                 return html`
                     <div class="error-wrapper">
                         <slot name="error">${extractErrorMessage(error)}</slot>
@@ -244,6 +258,14 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                 : '';
 
         return html`
+            <div
+                class=${classMap({
+                    'loading-wrapper': true,
+                    'hide-loading-wrapper': state.settled,
+                })}
+            >
+                <slot name="loading">Loading...</slot>
+            </div>
             <div class="frame-constraint" style=${frameConstraintStyles}>${iframeTemplate}</div>
             ${clickCoverTemplate}
         `;
