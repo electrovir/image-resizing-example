@@ -14,6 +14,7 @@ Exports a native web element, `VirResizableImage` (for use in [`element-vir`](ht
 -   [x] handles `viewBox` attributes missing on the top SVG (but existing on a nested SVG element)
 -   [x] allows for arbitrary manipulation of SVG code to account for errors in the original SVG code
 -   [x] handles race conditions between loading the image and determining its size
+-   [x] handles the many race conditions between iframes loading and communicating back and forth wit them
 
 ## Example
 
@@ -27,7 +28,7 @@ npm i @electrovir/resizable-image-element
 
 Meant for use with `element-vir`:
 
-<!-- example-link: src/readme-examples/example-usage.example.ts -->
+<!-- example-link: src/readme-examples/simple-usage.example.ts -->
 
 ```TypeScript
 import {assign, html} from 'element-vir';
@@ -53,3 +54,26 @@ export function createTemplate() {
 ```
 
 You can also use the tag name `vir-resizable-image` outside of `element-vir` but you may have to imperatively assign inputs to make that work.
+
+### Loading placeholder
+
+To customize the loading placeholder, use `slot="loading"` on a child element:
+
+<!-- example-link: src/readme-examples/loading-slot.example.ts -->
+
+```TypeScript
+import {assign, html} from 'element-vir';
+import {VirResizableImage} from '@electrovir/resizable-image-element';
+
+export function createTemplate() {
+    return html`
+        <${VirResizableImage}
+            ${assign(VirResizableImage, {
+                imageUrl: 'https://example.com/my-image-url',
+            })}
+        >
+            <div slot="loading">My custom loading</div>
+        </${VirResizableImage}>
+    `;
+}
+```
