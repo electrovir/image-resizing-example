@@ -1,5 +1,5 @@
 import {addPx} from '@augment-vir/browser';
-import {wait} from '@augment-vir/common';
+import {createDeferredPromiseWrapper, wait} from '@augment-vir/common';
 import {UpdateStateCallback} from 'element-vir';
 import {
     calculateRatio,
@@ -10,47 +10,50 @@ import {
 import {makeAttemptWaitDuration} from './augments/duration';
 import {ImageData, ImageType} from './image-data';
 import {MessageType, sendPingPongMessage} from './message';
+import {MutatedClassesEnum} from './mutated-classes';
 import {ResizableImageState} from './resizable-image-state';
 
-export type handleIframeInputs = {
-    updateState: UpdateStateCallback<ResizableImageState>;
-    min: Dimensions | undefined;
-    max: Dimensions | undefined;
-    host: HTMLElement;
-    imageData: ImageData;
-    forcedFinalImageSize: Dimensions | undefined;
-    forcedOriginalImageSize: Dimensions | undefined;
-};
-
-function getIframeContentWindow(host: HTMLElement) {
-    return host.shadowRoot!.querySelector('iframe')?.contentWindow;
+function getIframeContentWindow(iframeElement: HTMLIFrameElement) {
+    return iframeElement.contentWindow;
 }
 
-const maxContentWindowWaitTime = 60_000;
+const maxContentWindowWaitTime = 10_000;
 
 export async function handleIframe({
     updateState,
     min,
     max,
     host,
+    iframeElement,
     imageData,
     forcedFinalImageSize,
     forcedOriginalImageSize,
-}: handleIframeInputs): Promise<string> {
+}: {
+    updateState: UpdateStateCallback<ResizableImageState>;
+    min: Dimensions | undefined;
+    max: Dimensions | undefined;
+    host: HTMLElement;
+    iframeElement: HTMLIFrameElement;
+    imageData: ImageData;
+    forcedFinalImageSize: Dimensions | undefined;
+    forcedOriginalImageSize: Dimensions | undefined;
+}): Promise<string> {
     const startTime = Date.now();
+    const iframeLoadPromise = createDeferredPromiseWrapper();
+    iframeElement.onload = () => {
+        console.log('loaded!');
+        iframeLoadPromise.resolve();
+    };
+
     let trialAttempt = 0;
-    while (!getIframeContentWindow(host)) {
+    let waitDuration = 0;
+    while (!getIframeContentWindow(iframeElement) && waitDuration <= maxContentWindowWaitTime) {
         await wait(makeAttemptWaitDuration(trialAttempt));
-        if (Date.now() - startTime > maxContentWindowWaitTime) {
-            throw new Error(
-                `Took over ${Math.floor(
-                    maxContentWindowWaitTime / 1000,
-                )} seconds for the vir-resizable-image iframe's content window to appear for '${
-                    imageData.imageUrl
-                }'`,
-            );
-        }
+        waitDuration = Date.now() - startTime;
         trialAttempt++;
+    }
+    if (waitDuration > maxContentWindowWaitTime) {
+        await iframeLoadPromise.promise;
     }
 
     await sendPingPongMessage({
@@ -58,7 +61,7 @@ export async function handleIframe({
             type: MessageType.Ready,
         },
         imageUrl: imageData.imageUrl,
-        getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+        getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
     });
 
     if (forcedFinalImageSize) {
@@ -68,7 +71,7 @@ export async function handleIframe({
                 data: forcedFinalImageSize,
             },
             imageUrl: imageData.imageUrl,
-            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+            getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
         });
     }
 
@@ -79,7 +82,7 @@ export async function handleIframe({
                 type: MessageType.SendSize,
             },
             imageUrl: imageData.imageUrl,
-            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+            getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
             verifyData: (size) => {
                 return !isNaN(size.width) && !isNaN(size.height) && !!size.width && !!size.height;
             },
@@ -91,11 +94,12 @@ export async function handleIframe({
         max,
         imageDimensions,
         host,
+        iframeElement,
         imageData,
         forcedFinalImageSize,
     });
 
-    return getIframeContentWindow(host)!.document.documentElement.outerHTML;
+    return getIframeContentWindow(iframeElement)!.document.documentElement.outerHTML;
 }
 
 async function handleLoadedImageSize({
@@ -104,6 +108,7 @@ async function handleLoadedImageSize({
     max,
     imageDimensions,
     host,
+    iframeElement,
     imageData,
     forcedFinalImageSize,
 }: {
@@ -112,6 +117,7 @@ async function handleLoadedImageSize({
     max: Dimensions | undefined;
     imageDimensions: Dimensions;
     host: HTMLElement;
+    iframeElement: HTMLIFrameElement;
     imageData: ImageData;
     forcedFinalImageSize: Dimensions | undefined;
 }) {
@@ -136,13 +142,9 @@ async function handleLoadedImageSize({
     });
 
     if (newImageSize.height < hostSize.height) {
-        updateState({
-            shouldVerticallyCenter: true,
-        });
+        host.classList.add(MutatedClassesEnum.VerticallyCenter);
     } else {
-        updateState({
-            shouldVerticallyCenter: false,
-        });
+        host.classList.remove(MutatedClassesEnum.VerticallyCenter);
     }
 
     host.style.width = addPx(hostSize.width);
@@ -160,7 +162,7 @@ async function handleLoadedImageSize({
                 data: 'pixelated',
             },
             imageUrl: imageData.imageUrl,
-            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+            getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
         });
     } else {
         await sendPingPongMessage({
@@ -169,7 +171,7 @@ async function handleLoadedImageSize({
                 data: 'default',
             },
             imageUrl: imageData.imageUrl,
-            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+            getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
         });
     }
 
@@ -193,7 +195,7 @@ async function handleLoadedImageSize({
                 data: scales,
             },
             imageUrl: imageData.imageUrl,
-            getMessageContext: () => getIframeContentWindow(host) ?? undefined,
+            getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
         });
     }
 }

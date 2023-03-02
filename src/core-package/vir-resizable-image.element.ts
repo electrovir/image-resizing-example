@@ -8,10 +8,11 @@ import {
     renderAsyncState,
 } from 'element-vir';
 import type {TemplateResult} from 'lit';
-import {classMap} from 'lit/directives/class-map.js';
+import {unsafeCSS} from 'lit';
 import {clampDimensions, Dimensions, scaleToConstraints} from './augments/dimensions';
 import {handleIframe} from './handle-iframe';
 import {getImageData, ImageType} from './image-data';
+import {MutatedClassesEnum} from './mutated-classes';
 import {generateIframeDoc} from './resizable-image-frame';
 import {defaultResizableImageState} from './resizable-image-state';
 
@@ -50,9 +51,6 @@ export type VirResizableImageInputs = {
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: 'vir-resizable-image',
     stateInit: defaultResizableImageState,
-    hostClasses: {
-        verticallyCenter: ({state}) => state.shouldVerticallyCenter,
-    },
     events: {
         settled: defineElementEvent<boolean>(),
         errored: defineElementEvent<Error>(),
@@ -67,7 +65,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             overflow: hidden;
         }
 
-        ${hostClassSelectors.verticallyCenter} {
+        :host(.${unsafeCSS(MutatedClassesEnum.VerticallyCenter)}) {
             align-items: center;
         }
 
@@ -111,7 +109,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             pointer-events: none;
         }
 
-        .hide-loading-wrapper {
+        :host(.${unsafeCSS(MutatedClassesEnum.HideLoading)}) .loading-wrapper {
             /**
              * Only place the transition on the hide class so that when the loading wrapper should
              * show up, it shows up instantly.
@@ -130,18 +128,12 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
         }
     `,
     renderCallback: ({state, inputs, updateState, host, dispatch, events}) => {
-        function setSettled(value: boolean) {
-            updateState({settled: value});
-            dispatch(new events.settled(value));
-        }
-
         updateState({
             imageData: {
                 createPromise: async () => {
-                    setSettled(false);
-                    updateState({
-                        shouldVerticallyCenter: false,
-                    });
+                    host.classList.remove(MutatedClassesEnum.HideLoading);
+                    dispatch(new events.settled(false));
+                    host.classList.remove(MutatedClassesEnum.VerticallyCenter);
                     try {
                         return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay);
                     } catch (error) {
@@ -199,18 +191,20 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                             inputs.extraHtml,
                             inputs.htmlSizeQuerySelector,
                         )}
-                        ${onDomCreated(async () => {
+                        ${onDomCreated(async (element) => {
                             try {
                                 const latestFrameSource = await handleIframe({
                                     updateState,
                                     min: minConstraint,
                                     max: maxConstraint,
                                     host,
+                                    iframeElement: element as HTMLIFrameElement,
                                     imageData: resolvedImageData,
                                     forcedFinalImageSize: inputs.forcedFinalImageSize,
                                     forcedOriginalImageSize: clampedForcedOriginalImageSize,
                                 });
-                                setSettled(true);
+                                dispatch(new events.settled(true));
+                                host.classList.add(MutatedClassesEnum.HideLoading);
                                 updateState({
                                     frameFullHtml: {
                                         imageUrl: resolvedImageData.imageUrl,
@@ -271,12 +265,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                 : '';
 
         return html`
-            <div
-                class=${classMap({
-                    'loading-wrapper': true,
-                    'hide-loading-wrapper': state.settled,
-                })}
-            >
+            <div class="loading-wrapper">
                 <slot name="loading">Loading...</slot>
             </div>
             <div class="frame-constraint" style=${frameConstraintStyles}>${iframeTemplate}</div>
