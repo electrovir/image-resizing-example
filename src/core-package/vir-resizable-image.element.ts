@@ -107,12 +107,16 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             position: absolute;
             z-index: 200;
             background-color: inherit;
-            transition: 500ms;
             opacity: 1;
             pointer-events: none;
         }
 
         .hide-loading-wrapper {
+            /**
+             * Only place the transition on the hide class so that when the loading wrapper should
+             * show up, it shows up instantly.
+             */
+            transition: 500ms;
             opacity: 0;
         }
 
