@@ -1,6 +1,6 @@
 {
     "name": "@electrovir/resizable-image-element",
-    "version": "4.2.4",
+    "version": "4.3.0",
     "description": "Arbitrary image resizing to fit within arbitrary dimensions.",
     "keywords": [
         "element",
@@ -45,13 +45,13 @@
         "test:types": "tsc --noEmit"
     },
     "dependencies": {
-        "@augment-vir/browser": "^12.12.0",
-        "@augment-vir/common": "^12.12.0",
-        "@augment-vir/element-vir": "^12.12.0"
+        "@augment-vir/browser": "^12.14.0",
+        "@augment-vir/common": "^12.14.0",
+        "@augment-vir/element-vir": "^12.14.0"
     },
     "devDependencies": {
-        "@augment-vir/browser-testing": "^12.12.0",
-        "@augment-vir/node-js": "^12.12.0",
+        "@augment-vir/browser-testing": "^12.14.0",
+        "@augment-vir/node-js": "^12.14.0",
         "@open-wc/testing": "^3.1.7",
         "@types/mocha": "^10.0.1",
         "@web/dev-server-esbuild": "^0.3.3",
@@ -73,7 +73,7 @@
         "prettier-plugin-toml": "^0.3.1",
         "spa-router-vir": "^2.0.0",
         "typescript": "^4.9.5",
-        "virmator": "^6.1.1",
+        "virmator": "^6.2.1",
         "vite": "^4.1.4"
     },
     "peerDependencies": {
