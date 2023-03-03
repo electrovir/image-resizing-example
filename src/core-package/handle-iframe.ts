@@ -41,7 +41,6 @@ export async function handleIframe({
     const startTime = Date.now();
     const iframeLoadPromise = createDeferredPromiseWrapper();
     iframeElement.onload = () => {
-        console.log('loaded!');
         iframeLoadPromise.resolve();
     };
 

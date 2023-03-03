@@ -48,6 +48,8 @@ export type VirResizableImageInputs = {
     blockAutoPlay?: boolean | undefined;
 };
 
+const sourceDocKey = 'latest-frame-srcdoc';
+
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: 'vir-resizable-image',
     stateInit: defaultResizableImageState,
@@ -55,7 +57,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
         settled: defineElementEvent<boolean>(),
         errored: defineElementEvent<Error>(),
     },
-    styles: ({hostClassSelectors}) => css`
+    styles: css`
         :host {
             position: relative;
             box-sizing: content-box;
@@ -127,7 +129,16 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             height: calc(100% + 1px);
         }
     `,
-    renderCallback: ({state, inputs, updateState, host, dispatch, events}) => {
+    cleanupCallback({host}) {
+        const iframe = host.shadowRoot!.querySelector('iframe');
+
+        const latestSourceDoc = (host as any)[sourceDocKey];
+
+        if (iframe && latestSourceDoc) {
+            iframe.srcdoc = latestSourceDoc;
+        }
+    },
+    renderCallback({state, inputs, updateState, host, dispatch, events}) {
         updateState({
             imageData: {
                 createPromise: async () => {
@@ -175,18 +186,12 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             state.imageData,
             '',
             (resolvedImageData) => {
-                const previousFrameHtml: string | undefined =
-                    state.frameFullHtml?.imageUrl === resolvedImageData.imageUrl
-                        ? state.frameFullHtml.html
-                        : undefined;
-
                 return html`
                     <iframe
                         loading="lazy"
                         referrerpolicy="no-referrer"
                         scrolling="no"
-                        srcdoc=${previousFrameHtml ||
-                        generateIframeDoc(
+                        srcdoc=${generateIframeDoc(
                             resolvedImageData,
                             inputs.extraHtml,
                             inputs.htmlSizeQuerySelector,
@@ -203,14 +208,16 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                     forcedFinalImageSize: inputs.forcedFinalImageSize,
                                     forcedOriginalImageSize: clampedForcedOriginalImageSize,
                                 });
+
+                                /**
+                                 * Store the frame source so we can set it to the iframe if this
+                                 * element is ever detached from the DOM. Do not save this data
+                                 * through a state update, as that will cause this element to
+                                 * re-render and make the image blink.
+                                 */
+                                (host as any)[sourceDocKey] = latestFrameSource;
                                 dispatch(new events.settled(true));
                                 host.classList.add(MutatedClassesEnum.HideLoading);
-                                updateState({
-                                    frameFullHtml: {
-                                        imageUrl: resolvedImageData.imageUrl,
-                                        html: latestFrameSource,
-                                    },
-                                });
                             } catch (error) {
                                 console.error(error);
                             }
