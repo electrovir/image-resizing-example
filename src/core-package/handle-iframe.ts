@@ -98,7 +98,11 @@ export async function handleIframe({
         forcedFinalImageSize,
     });
 
-    return getIframeContentWindow(iframeElement)!.document.documentElement.outerHTML;
+    /**
+     * GetIframeContentWindow(iframeElement) can return undefined here if the element is destroyed
+     * while loading is still in progress.
+     */
+    return getIframeContentWindow(iframeElement)?.document.documentElement.outerHTML ?? '';
 }
 
 async function handleLoadedImageSize({
