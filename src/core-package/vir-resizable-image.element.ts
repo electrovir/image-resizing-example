@@ -284,7 +284,10 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                       width: ${clampedForcedOriginalImageSize.width}px;
                       height: ${clampedForcedOriginalImageSize.height}px;
                   `
-                : '';
+                : css`
+                      width: ${minConstraint?.width ?? 250}px;
+                      height: ${minConstraint?.height ?? 250}px;
+                  `;
 
         return html`
             <div class="loading-wrapper">
