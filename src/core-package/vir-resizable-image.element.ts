@@ -284,16 +284,20 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                       width: ${clampedForcedOriginalImageSize.width}px;
                       height: ${clampedForcedOriginalImageSize.height}px;
                   `
-                : css`
-                      width: ${minConstraint?.width ?? 250}px;
-                      height: ${minConstraint?.height ?? 250}px;
-                  `;
+                : '';
+
+        const minSizeStyles = css`
+            width: ${minConstraint?.width ?? 250}px;
+            height: ${minConstraint?.height ?? 250}px;
+        `;
 
         return html`
             <div class="loading-wrapper">
                 <slot name="loading">Loading...</slot>
             </div>
-            <div class="frame-constraint" style=${frameConstraintStyles}>${iframeTemplate}</div>
+            <div class="min-size" style=${minSizeStyles}>
+                <div class="frame-constraint" style=${frameConstraintStyles}>${iframeTemplate}</div>
+            </div>
             ${clickCoverTemplate}
         `;
     },
