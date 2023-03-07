@@ -61,7 +61,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
         :host {
             position: relative;
             box-sizing: content-box;
-            display: flex;
+            display: inline-flex;
             justify-content: center;
             background-color: white;
             overflow: hidden;
