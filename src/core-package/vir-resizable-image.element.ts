@@ -92,10 +92,10 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
 
         .error-wrapper,
         .loading-wrapper {
-            min-width: 100%;
-            min-height: 100%;
-            max-width: 100%;
-            max-height: 100%;
+            min-width: calc(100% + 2px);
+            min-height: calc(100% + 2px);
+            max-width: calc(100% + 2px);
+            max-height: calc(100% + 2px);
             display: flex;
             align-items: center;
             justify-content: center;
