@@ -7,6 +7,7 @@ export enum ImageType {
     Image = 'image',
     Video = 'video',
     Audio = 'audio',
+    Pdf = 'pdf',
 }
 
 export type ImageData = {
@@ -33,6 +34,8 @@ async function determineImageType(contentType: string, imageText: string): Promi
         return ImageType.Text;
     } else if (contentType.includes('audio')) {
         return ImageType.Audio;
+    } else if (contentType.includes('pdf')) {
+        return ImageType.Pdf;
     } else {
         return ImageType.Image;
     }

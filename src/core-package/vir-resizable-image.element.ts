@@ -10,7 +10,7 @@ import {
 import type {TemplateResult} from 'lit';
 import {unsafeCSS} from 'lit';
 import {clampDimensions, Dimensions, scaleToConstraints} from './augments/dimensions';
-import {handleIframe} from './handle-iframe';
+import {handleIframe, handleLoadedImageSize} from './handle-iframe';
 import {getImageData, ImageType} from './image-data';
 import {MutatedClassesEnum} from './mutated-classes';
 import {generateIframeDoc} from './resizable-image-frame';
@@ -206,45 +206,81 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             state.imageData,
             '',
             (resolvedImageData) => {
-                return html`
-                    <iframe
-                        loading="lazy"
-                        referrerpolicy="no-referrer"
-                        scrolling="no"
-                        srcdoc=${generateIframeDoc(
-                            resolvedImageData,
-                            inputs.extraHtml,
-                            inputs.htmlSizeQuerySelector,
-                        )}
-                        ${onDomCreated(async (element) => {
-                            try {
-                                const latestFrameSource = await handleIframe({
-                                    updateState,
-                                    min: minConstraint,
-                                    max: maxConstraint,
-                                    host,
-                                    iframeElement: element as HTMLIFrameElement,
-                                    imageData: resolvedImageData,
-                                    forcedFinalImageSize: inputs.forcedFinalImageSize,
-                                    forcedOriginalImageSize: clampedForcedOriginalImageSize,
-                                });
+                if (resolvedImageData.imageType === ImageType.Pdf) {
+                    return html`
+                        <iframe
+                            src=${resolvedImageData.imageUrl}
+                            ${onDomCreated(async (element) => {
+                                try {
+                                    await handleLoadedImageSize({
+                                        forcedFinalImageSize: inputs.forcedFinalImageSize,
+                                        host,
+                                        iframeElement: element as HTMLIFrameElement,
+                                        imageData: resolvedImageData,
+                                        imageDimensions: maxConstraint ?? {
+                                            width: 500,
+                                            height: 500,
+                                        },
+                                        max: maxConstraint,
+                                        min: minConstraint,
+                                        sendSizeMessage: false,
+                                    });
 
-                                /**
-                                 * Store the frame source so we can set it to the iframe if this
-                                 * element is ever detached from the DOM. Do not save this data
-                                 * through a state update, as that will cause this element to
-                                 * re-render and make the image blink.
-                                 */
-                                (host as any)[sourceDocKey] = latestFrameSource;
-                                dispatch(new events.settled(true));
-                                host.classList.add(MutatedClassesEnum.HideLoading);
-                            } catch (error) {
-                                console.error(error);
-                            }
-                        })}
-                    ></iframe>
-                    <slot name="loaded"></slot>
-                `;
+                                    /**
+                                     * Store the frame source so we can set it to the iframe if this
+                                     * element is ever detached from the DOM. Do not save this data
+                                     * through a state update, as that will cause this element to
+                                     * re-render and make the image blink.
+                                     */
+                                    (host as any)[sourceDocKey] = '';
+                                    dispatch(new events.settled(true));
+                                    host.classList.add(MutatedClassesEnum.HideLoading);
+                                } catch (error) {
+                                    console.error(error);
+                                }
+                            })}
+                        ></iframe>
+                    `;
+                } else {
+                    return html`
+                        <iframe
+                            loading="lazy"
+                            referrerpolicy="no-referrer"
+                            scrolling="no"
+                            srcdoc=${generateIframeDoc(
+                                resolvedImageData,
+                                inputs.extraHtml,
+                                inputs.htmlSizeQuerySelector,
+                            )}
+                            ${onDomCreated(async (element) => {
+                                try {
+                                    const latestFrameSource = await handleIframe({
+                                        min: minConstraint,
+                                        max: maxConstraint,
+                                        host,
+                                        iframeElement: element as HTMLIFrameElement,
+                                        imageData: resolvedImageData,
+                                        forcedFinalImageSize: inputs.forcedFinalImageSize,
+                                        forcedOriginalImageSize: clampedForcedOriginalImageSize,
+                                    });
+
+                                    /**
+                                     * Store the frame source so we can set it to the iframe if this
+                                     * element is ever detached from the DOM. Do not save this data
+                                     * through a state update, as that will cause this element to
+                                     * re-render and make the image blink.
+                                     */
+                                    (host as any)[sourceDocKey] = latestFrameSource;
+                                    dispatch(new events.settled(true));
+                                    host.classList.add(MutatedClassesEnum.HideLoading);
+                                } catch (error) {
+                                    console.error(error);
+                                }
+                            })}
+                        ></iframe>
+                        <slot name="loaded"></slot>
+                    `;
+                }
             },
             (error) => {
                 dispatch(new events.errored(ensureError(error)));
@@ -265,6 +301,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                         ImageType.Html,
                         ImageType.Video,
                         ImageType.Audio,
+                        ImageType.Pdf,
                     ].includes(resolvedImageData.imageType)
                 ) {
                     /**
