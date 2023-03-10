@@ -2,6 +2,7 @@ import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
 export enum ImageType {
     Html = 'html',
+    Text = 'text',
     Svg = 'svg',
     Image = 'image',
     Video = 'video',
@@ -13,14 +14,19 @@ export type ImageData = {
     imageUrl: string;
 };
 
-async function determineImageType(imageResponse: Response, imageText: string): Promise<ImageType> {
-    const contentType = imageResponse.headers.get('Content-Type') ?? '';
+async function determineImageType(contentType: string, imageText: string): Promise<ImageType> {
     if (contentType.includes('video')) {
         return ImageType.Video;
     } else if (contentType.includes('svg') || imageText.includes('<svg')) {
         return ImageType.Svg;
     } else if (contentType.includes('html') || imageText.includes('<html')) {
         return ImageType.Html;
+    } else if (
+        contentType.includes('json') ||
+        contentType.includes('text') ||
+        contentType.includes('txt')
+    ) {
+        return ImageType.Text;
     } else {
         return ImageType.Image;
     }
@@ -52,9 +58,28 @@ function generateTemplateString({
                 <source src=${imageUrl} type="video/mp4" />
             </video>
         `);
+    } else if (imageType === ImageType.Text) {
+        return convertTemplateToString(
+            html`
+                <p class="text-wrapper">
+                    ${imageText
+                        .replace(/\n/g, '<br />')
+                        .replace(/    /g, '<span class="spacer"></span>')}
+                </p>
+            `,
+        );
     } else {
         return imageText;
     }
+}
+
+function formatText(text: string, contentType: string) {
+    if (contentType.includes('json')) {
+        try {
+            return JSON.stringify(JSON.parse(text), null, 4);
+        } catch (error) {}
+    }
+    return text;
 }
 
 export async function getImageData(imageUrl: string, blockAutoPlay: boolean): Promise<ImageData> {
@@ -64,10 +89,12 @@ export async function getImageData(imageUrl: string, blockAutoPlay: boolean): Pr
         imageResponse = await fetch(imageUrl);
     } catch (error) {}
 
-    const imageText = (await imageResponse?.text()) ?? '';
+    const contentType = imageResponse?.headers.get('Content-Type')?.toLowerCase() ?? '';
+
+    const imageText = formatText((await imageResponse?.text()) ?? '', contentType);
 
     const imageType = imageResponse
-        ? await determineImageType(imageResponse, imageText)
+        ? await determineImageType(contentType, imageText)
         : // naively assume it's an image
           ImageType.Image;
 

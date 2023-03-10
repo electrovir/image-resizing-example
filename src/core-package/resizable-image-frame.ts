@@ -125,12 +125,28 @@ export function generateIframeDoc(
                 return size;
             }
 
+            function getTextSize() {
+                const textWrapper = document.querySelector('.text-wrapper');
+
+                const size = {
+                    width: textWrapper.clientWidth,
+                    height: textWrapper.clientHeight,
+                };
+
+                return size;
+            }
+
             const sizeGrabbers = {
                 svg: getSvgSize,
                 html: getHtmlSize,
                 image: getImageSize,
                 video: getVideoSize,
+                text: getTextSize,
             };
+
+            if (!(imageType in sizeGrabbers)) {
+                throw new Error('No size grabber exists for image type "' + imageType + '"');
+            }
 
             function getSize() {
                 return sizeGrabbers[imageType]();
@@ -254,8 +270,23 @@ export function generateIframeDoc(
                         display: block;
                     }
 
+                    .spacer {
+                        padding: 0 8px;
+                    }
+
                     .pixelated {
                         image-rendering: pixelated;
+                    }
+
+                    html.image-type-text body {
+                        max-width: 100%;
+                    }
+
+                    .text-wrapper {
+                        font-family: sans-serif;
+                        word-break: break-all;
+                        padding: 16px;
+                        max-width: 100%;
                     }
                 </style>
                 <script>

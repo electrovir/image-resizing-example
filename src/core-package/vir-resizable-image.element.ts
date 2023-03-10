@@ -143,6 +143,11 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             width: calc(100% + 1px);
             height: calc(100% + 1px);
         }
+
+        .min-size {
+            display: flex;
+            justify-content: center;
+        }
     `,
     cleanupCallback({host}) {
         const iframe = host.shadowRoot!.querySelector('iframe');
