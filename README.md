@@ -1,6 +1,6 @@
 # resizable-image-element
 
-Arbitrary image resizing to fit within arbitrary dimensions.
+Arbitrary interactive resource resizing to fit within arbitrary dimensions. This original started as an image helper, but now it supports many file types including text, video, audio, etc.
 
 Exports a native web element, `VirResizableImage` (for use in [`element-vir`](https://www.npmjs.com/package/element-vir)) or `vir-resizable-image` (for use as an HTML tag name) that accepts inputs of max dimensions and imageUrl. The element handles the rest!
 
@@ -15,6 +15,7 @@ Exports a native web element, `VirResizableImage` (for use in [`element-vir`](ht
 -   [x] allows for arbitrary manipulation of SVG code to account for errors in the original SVG code
 -   [x] handles race conditions between loading the image and determining its size
 -   [x] handles the many race conditions between iframe loading and communicating back and forth wit them
+-   [x] handles audio files
 
 ## Example
 

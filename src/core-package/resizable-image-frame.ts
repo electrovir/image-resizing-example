@@ -2,7 +2,7 @@ import {collapseWhiteSpace} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
 import {TemplateResult} from 'lit';
-import {ImageData} from './image-data';
+import {ImageData, ImageType} from './image-data';
 import {MessageDirection, MessageType} from './message';
 
 export function generateIframeDoc(
@@ -136,12 +136,24 @@ export function generateIframeDoc(
                 return size;
             }
 
+            function getAudioSize() {
+                const audioElement = document.querySelector('audio');
+
+                const size = {
+                    width: audioElement.clientWidth,
+                    height: audioElement.clientHeight,
+                };
+
+                return size;
+            }
+
             const sizeGrabbers = {
-                svg: getSvgSize,
-                html: getHtmlSize,
-                image: getImageSize,
-                video: getVideoSize,
-                text: getTextSize,
+                ${ImageType.Svg}: getSvgSize,
+                ${ImageType.Html}: getHtmlSize,
+                ${ImageType.Image}: getImageSize,
+                ${ImageType.Video}: getVideoSize,
+                ${ImageType.Text}: getTextSize,
+                ${ImageType.Audio}: getAudioSize,
             };
 
             if (!(imageType in sizeGrabbers)) {
@@ -230,12 +242,14 @@ export function generateIframeDoc(
                 });
             }
 
-            try {
-                muteEverything();
-                const mutationObserver = new MutationObserver(muteEverything);
-                mutationObserver.observe(document, {childList: true, subtree: true});
-            } catch (error) {
-                console.error(error);
+            if (imageType !== '${ImageType.Audio}') {
+                try {
+                    muteEverything();
+                    const mutationObserver = new MutationObserver(muteEverything);
+                    mutationObserver.observe(document, {childList: true, subtree: true});
+                } catch (error) {
+                    console.error(error);
+                }
             }
         </script>
     `;

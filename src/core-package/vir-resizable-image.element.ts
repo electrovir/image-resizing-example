@@ -264,6 +264,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                     [
                         ImageType.Html,
                         ImageType.Video,
+                        ImageType.Audio,
                     ].includes(resolvedImageData.imageType)
                 ) {
                     /**

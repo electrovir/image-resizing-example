@@ -6,6 +6,7 @@ export enum ImageType {
     Svg = 'svg',
     Image = 'image',
     Video = 'video',
+    Audio = 'audio',
 }
 
 export type ImageData = {
@@ -23,10 +24,15 @@ async function determineImageType(contentType: string, imageText: string): Promi
         return ImageType.Html;
     } else if (
         contentType.includes('json') ||
+        contentType.includes('yaml') ||
+        contentType.includes('yml') ||
+        contentType.includes('pgp-signature') ||
         contentType.includes('text') ||
         contentType.includes('txt')
     ) {
         return ImageType.Text;
+    } else if (contentType.includes('audio')) {
+        return ImageType.Audio;
     } else {
         return ImageType.Image;
     }
@@ -55,7 +61,7 @@ function generateTemplateString({
                 loop
                 onclick="this.paused ? this.play() : this.pause()"
             >
-                <source src=${imageUrl} type="video/mp4" />
+                <source src=${imageUrl} />
             </video>
         `);
     } else if (imageType === ImageType.Text) {
@@ -66,6 +72,12 @@ function generateTemplateString({
                         .replace(/\n/g, '<br />')
                         .replace(/    /g, '<span class="spacer"></span>')}
                 </p>
+            `,
+        );
+    } else if (imageType === ImageType.Audio) {
+        return convertTemplateToString(
+            html`
+                <audio controls src=${imageUrl}></audio>
             `,
         );
     } else {
