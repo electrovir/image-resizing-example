@@ -9,5 +9,6 @@ module.exports = {
         ...baseConfig.words,
         'iframe',
         'referrerpolicy',
+        'iframes',
     ],
 };

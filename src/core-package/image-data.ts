@@ -1,5 +1,6 @@
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
+
 export enum ImageType {
     Html = 'html',
     Text = 'text',

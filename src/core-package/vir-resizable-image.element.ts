@@ -46,6 +46,10 @@ export type VirResizableImageInputs = {
      * muted).
      */
     blockAutoPlay?: boolean | undefined;
+    /** Block interaction with images, even on HTML pages. */
+    blockInteraction?: boolean | undefined;
+    /** Set to true to disable lazy loading. */
+    eagerLoading?: boolean | undefined;
 };
 
 const sourceDocKey = 'latest-frame-srcdoc';
@@ -244,7 +248,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                 } else {
                     return html`
                         <iframe
-                            loading="lazy"
+                            loading=${inputs.eagerLoading ? 'eager' : 'lazy'}
                             referrerpolicy="no-referrer"
                             scrolling="no"
                             srcdoc=${generateIframeDoc(
@@ -297,6 +301,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             defaultClickCover,
             (resolvedImageData) => {
                 if (
+                    !inputs.blockInteraction &&
                     [
                         ImageType.Html,
                         ImageType.Video,
