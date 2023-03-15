@@ -1,8 +1,5 @@
-const baseDurationWait = 10;
-
 export function makeAttemptWaitDuration(attemptCount: number) {
-    return Math.min(
-        Math.max(Math.floor(Math.pow(attemptCount + 1, 3) * baseDurationWait), baseDurationWait),
-        5000,
-    );
+    const waitDuration = Math.min(Math.floor(Math.pow(attemptCount, 3)), 5000);
+
+    return waitDuration;
 }
