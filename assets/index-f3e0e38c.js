@@ -688,7 +688,7 @@ ${t.templateString}
                         ></iframe>
                     `:I`
                         <iframe
-                            loading="lazy"
+                            loading=${e.eagerLoading?"eager":"lazy"}
                             referrerpolicy="no-referrer"
                             scrolling="no"
                             srcdoc=${Zo(f,e.extraHtml,e.htmlSizeQuerySelector)}
@@ -699,7 +699,7 @@ ${t.templateString}
                     <div class="error-wrapper">
                         <slot name="error">${cr(f)}</slot>
                     </div>
-                `)),c=Mn(t.imageData,as,f=>[G.Html,G.Video,G.Audio,G.Pdf].includes(f.imageType)?"":as,()=>""),u=t.imageData instanceof Error?Fe`
+                `)),c=Mn(t.imageData,as,f=>!e.blockInteraction&&[G.Html,G.Video,G.Audio,G.Pdf].includes(f.imageType)?"":as,()=>""),u=t.imageData instanceof Error?Fe`
                       max-width: 100%;
                       max-height: 100%;
                   `:l?Fe`
