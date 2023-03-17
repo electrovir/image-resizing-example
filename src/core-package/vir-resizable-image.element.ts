@@ -11,7 +11,7 @@ import type {TemplateResult} from 'lit';
 import {unsafeCSS} from 'lit';
 import {clampDimensions, Dimensions, scaleToConstraints} from './augments/dimensions';
 import {handleIframe, handleLoadedImageSize} from './handle-iframe';
-import {getImageData, ImageType} from './image-data';
+import {getImageData, ImageType, ResizableImageData} from './image-data';
 import {MutatedClassesEnum} from './mutated-classes';
 import {generateIframeDoc} from './resizable-image-frame';
 import {defaultResizableImageState} from './resizable-image-state';
@@ -59,6 +59,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     stateInit: defaultResizableImageState,
     events: {
         settled: defineElementEvent<boolean>(),
+        imageDataCalculated: defineElementEvent<ResizableImageData>(),
         errored: defineElementEvent<Error>(),
     },
     styles: css`
@@ -211,6 +212,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             state.imageData,
             '',
             (resolvedImageData) => {
+                dispatch(new events.imageDataCalculated(resolvedImageData));
                 if (resolvedImageData.imageType === ImageType.Pdf) {
                     return html`
                         <iframe

@@ -2,11 +2,11 @@ import {collapseWhiteSpace} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
 import {TemplateResult} from 'lit';
-import {ImageData, ImageType} from './image-data';
+import {ImageType, ResizableImageData} from './image-data';
 import {MessageDirection, MessageType} from './message';
 
 export function generateIframeDoc(
-    imageData: ImageData,
+    imageData: ResizableImageData,
     extraHtml: string | TemplateResult | undefined,
     htmlSizeQuerySelector: string | undefined,
 ): string {

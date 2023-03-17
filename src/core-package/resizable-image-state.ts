@@ -1,8 +1,8 @@
 import {asyncState} from 'element-vir';
-import {ImageData} from './image-data';
+import {ResizableImageData} from './image-data';
 
 export const defaultResizableImageState = {
-    imageData: asyncState<ImageData>(),
+    imageData: asyncState<ResizableImageData>(),
 };
 
 export type ResizableImageState = typeof defaultResizableImageState;

@@ -1,3 +1,4 @@
+import {parseJson} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
 
@@ -11,7 +12,7 @@ export enum ImageType {
     Pdf = 'pdf',
 }
 
-export type ImageData = {
+export type ResizableImageData = {
     templateString: string;
     imageType: ImageType;
     imageUrl: string;
@@ -90,7 +91,8 @@ function generateTemplateString({
 }
 
 function formatText(text: string, contentType: string) {
-    if (contentType.includes('json')) {
+    const isValidJson = !!parseJson({jsonString: text, errorHandler: () => undefined});
+    if (contentType.includes('json') || isValidJson) {
         try {
             return JSON.stringify(JSON.parse(text), null, 4);
         } catch (error) {}
@@ -98,7 +100,10 @@ function formatText(text: string, contentType: string) {
     return text;
 }
 
-export async function getImageData(imageUrl: string, blockAutoPlay: boolean): Promise<ImageData> {
+export async function getImageData(
+    imageUrl: string,
+    blockAutoPlay: boolean,
+): Promise<ResizableImageData> {
     let imageResponse: Response | undefined;
 
     try {

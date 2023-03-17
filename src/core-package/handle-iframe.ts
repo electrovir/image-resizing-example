@@ -7,7 +7,7 @@ import {
     scaleToConstraints,
 } from './augments/dimensions';
 import {makeAttemptWaitDuration} from './augments/duration';
-import {ImageData, ImageType} from './image-data';
+import {ImageType, ResizableImageData} from './image-data';
 import {MessageType, sendPingPongMessage} from './message';
 import {MutatedClassesEnum} from './mutated-classes';
 
@@ -30,7 +30,7 @@ export async function handleIframe({
     max: Dimensions | undefined;
     host: HTMLElement;
     iframeElement: HTMLIFrameElement;
-    imageData: ImageData;
+    imageData: ResizableImageData;
     forcedFinalImageSize: Dimensions | undefined;
     forcedOriginalImageSize: Dimensions | undefined;
 }): Promise<string> {
@@ -116,7 +116,7 @@ export async function handleLoadedImageSize({
     imageDimensions: Dimensions;
     host: HTMLElement;
     iframeElement: HTMLIFrameElement;
-    imageData: ImageData;
+    imageData: ResizableImageData;
     forcedFinalImageSize: Dimensions | undefined;
     sendSizeMessage: boolean;
 }) {
