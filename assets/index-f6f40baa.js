@@ -54,14 +54,15 @@
 
             function extractSvgSize(svgElement) {
                 const viewBox = svgElement.getAttribute('viewBox');
-                const viewBoxDimensions = viewBox?.match(/s*\\d+\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s*/);
+                const viewBoxDimensions = viewBox?.match(
+                    /s*(?:[\\d\\.]+)\\s+(?:[\\d\\.]+)\\s+((?:[\\d\\.]+))\\s+((?:[\\d\\.]+))\\s*/,
+                );
                 const viewBoxWidth = Number(viewBoxDimensions?.[1]);
                 const viewBoxHeight = Number(viewBoxDimensions?.[2]);
                 const width =
                     Number(svgElement.getAttribute('width')?.replace(/px$/, '')) || viewBoxWidth;
                 const height =
                     Number(svgElement.getAttribute('height')?.replace(/px$/, '')) || viewBoxHeight;
-
                 if (isNaN(width) || isNaN(height)) {
                     return undefined;
                 } else {
@@ -295,14 +296,15 @@
 
             function extractSvgSize(svgElement) {
                 const viewBox = svgElement.getAttribute('viewBox');
-                const viewBoxDimensions = viewBox?.match(/s*\\\\d+\\\\s+\\\\d+\\\\s+(\\\\d+)\\\\s+(\\\\d+)\\\\s*/);
+                const viewBoxDimensions = viewBox?.match(
+                    /s*(?:[\\\\d\\\\.]+)\\\\s+(?:[\\\\d\\\\.]+)\\\\s+((?:[\\\\d\\\\.]+))\\\\s+((?:[\\\\d\\\\.]+))\\\\s*/,
+                );
                 const viewBoxWidth = Number(viewBoxDimensions?.[1]);
                 const viewBoxHeight = Number(viewBoxDimensions?.[2]);
                 const width =
                     Number(svgElement.getAttribute('width')?.replace(/px$/, '')) || viewBoxWidth;
                 const height =
                     Number(svgElement.getAttribute('height')?.replace(/px$/, '')) || viewBoxHeight;
-
                 if (isNaN(width) || isNaN(height)) {
                     return undefined;
                 } else {
