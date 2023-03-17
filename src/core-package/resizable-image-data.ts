@@ -5,6 +5,7 @@ import {html} from 'element-vir';
 export enum ImageType {
     Html = 'html',
     Text = 'text',
+    Json = 'json',
     Svg = 'svg',
     Image = 'image',
     Video = 'video',
@@ -25,6 +26,8 @@ async function determineImageType(contentType: string, imageText: string): Promi
         return ImageType.Svg;
     } else if (contentType.includes('html') || imageText.includes('<html')) {
         return ImageType.Html;
+    } else if (isJson(imageText)) {
+        return ImageType.Json;
     } else if (
         contentType.includes('json') ||
         contentType.includes('yaml') ||
@@ -69,7 +72,7 @@ function generateTemplateString({
                 <source src=${imageUrl} />
             </video>
         `);
-    } else if (imageType === ImageType.Text) {
+    } else if (imageType === ImageType.Text || imageType === ImageType.Json) {
         return convertTemplateToString(
             html`
                 <p class="text-wrapper">
@@ -90,9 +93,13 @@ function generateTemplateString({
     }
 }
 
-function formatText(text: string, contentType: string) {
-    const isValidJson = !!parseJson({jsonString: text, errorHandler: () => undefined});
-    if (contentType.includes('json') || isValidJson) {
+function isJson(imageText: string) {
+    const isValidJson = !!parseJson({jsonString: imageText, errorHandler: () => undefined});
+    return isValidJson;
+}
+
+function formatText(text: string, imageType: ImageType) {
+    if (imageType === ImageType.Json) {
         try {
             return JSON.stringify(JSON.parse(text), null, 4);
         } catch (error) {}
@@ -111,13 +118,14 @@ export async function getImageData(
     } catch (error) {}
 
     const contentType = imageResponse?.headers.get('Content-Type')?.toLowerCase() ?? '';
-
-    const imageText = formatText((await imageResponse?.text()) ?? '', contentType);
+    const rawText = (await imageResponse?.text()) ?? '';
 
     const imageType = imageResponse
-        ? await determineImageType(contentType, imageText)
+        ? await determineImageType(contentType, rawText)
         : // naively assume it's an image
           ImageType.Image;
+
+    const imageText = formatText(rawText ?? '', imageType);
 
     const templateString = generateTemplateString({
         imageText,

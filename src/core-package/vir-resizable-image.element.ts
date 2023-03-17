@@ -11,8 +11,8 @@ import type {TemplateResult} from 'lit';
 import {unsafeCSS} from 'lit';
 import {Dimensions, clampDimensions, scaleToConstraints} from './augments/dimensions';
 import {handleIframe, handleLoadedImageSize} from './handle-iframe';
-import {ImageType, ResizableImageData, getImageData} from './image-data';
 import {MutatedClassesEnum} from './mutated-classes';
+import {ImageType, ResizableImageData, getImageData} from './resizable-image-data';
 import {generateIframeDoc} from './resizable-image-frame';
 import {defaultResizableImageState} from './resizable-image-state';
 

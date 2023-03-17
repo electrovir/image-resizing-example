@@ -7,9 +7,9 @@ import {
     scaleToConstraints,
 } from './augments/dimensions';
 import {makeAttemptWaitDuration} from './augments/duration';
-import {ImageType, ResizableImageData} from './image-data';
 import {MessageType, sendPingPongMessage} from './message';
 import {MutatedClassesEnum} from './mutated-classes';
+import {ImageType, ResizableImageData} from './resizable-image-data';
 
 function getIframeContentWindow(iframeElement: HTMLIFrameElement) {
     return iframeElement.contentWindow;

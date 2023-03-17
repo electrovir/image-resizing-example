@@ -2,8 +2,8 @@ import {collapseWhiteSpace} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
 import {TemplateResult} from 'lit';
-import {ImageType, ResizableImageData} from './image-data';
 import {MessageDirection, MessageType} from './message';
+import {ImageType, ResizableImageData} from './resizable-image-data';
 
 export function generateIframeDoc(
     imageData: ResizableImageData,
@@ -153,6 +153,7 @@ export function generateIframeDoc(
                 ${ImageType.Image}: getImageSize,
                 ${ImageType.Video}: getVideoSize,
                 ${ImageType.Text}: getTextSize,
+                ${ImageType.Json}: getTextSize,
                 ${ImageType.Audio}: getAudioSize,
             };
 
@@ -256,7 +257,7 @@ export function generateIframeDoc(
 
     const htmlTemplate = html`
         <!DOCTYPE html>
-        <html class="image-type-${imageData.imageType.toLowerCase()}">
+        <html class="image-type-${imageData.imageType}">
             <head>
                 <style>
                     body,
@@ -274,9 +275,9 @@ export function generateIframeDoc(
                         align-items: center;
                     }
 
-                    html.image-type-image img,
-                    html.image-type-svg svg,
-                    html.image-type-video video {
+                    html.image-type-${ImageType.Image} img,
+                    html.image-type-${ImageType.Svg} svg,
+                    html.image-type-${ImageType.Video} video {
                         max-width: 100vw;
                         max-height: 100vh;
                         width: 100vw;
@@ -292,7 +293,8 @@ export function generateIframeDoc(
                         image-rendering: pixelated;
                     }
 
-                    html.image-type-text body {
+                    html.image-type-${ImageType.Text} body,
+                    html.image-type-${ImageType.Json} body {
                         max-width: 100%;
                     }
 
