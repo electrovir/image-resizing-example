@@ -1,9 +1,9 @@
 import {addPx} from '@augment-vir/browser';
 import {createDeferredPromiseWrapper, wait} from '@augment-vir/common';
 import {
+    Dimensions,
     calculateRatio,
     clampDimensions,
-    Dimensions,
     scaleToConstraints,
 } from './augments/dimensions';
 import {makeAttemptWaitDuration} from './augments/duration';

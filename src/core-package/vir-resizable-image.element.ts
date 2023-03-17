@@ -9,9 +9,9 @@ import {
 } from 'element-vir';
 import type {TemplateResult} from 'lit';
 import {unsafeCSS} from 'lit';
-import {clampDimensions, Dimensions, scaleToConstraints} from './augments/dimensions';
+import {Dimensions, clampDimensions, scaleToConstraints} from './augments/dimensions';
 import {handleIframe, handleLoadedImageSize} from './handle-iframe';
-import {getImageData, ImageType, ResizableImageData} from './image-data';
+import {ImageType, ResizableImageData, getImageData} from './image-data';
 import {MutatedClassesEnum} from './mutated-classes';
 import {generateIframeDoc} from './resizable-image-frame';
 import {defaultResizableImageState} from './resizable-image-state';

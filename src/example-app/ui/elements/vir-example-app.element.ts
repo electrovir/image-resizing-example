@@ -1,6 +1,6 @@
 import {addPx} from '@augment-vir/browser';
 import {areJsonEqual, capitalizeFirstLetter, wait} from '@augment-vir/common';
-import {assign, AsyncState, asyncState, css, html, listen, renderAsyncState} from 'element-vir';
+import {AsyncState, assign, asyncState, css, html, listen, renderAsyncState} from 'element-vir';
 import {DimensionConstraints, Dimensions, VirResizableImage} from '../../..';
 import {sanitizeUrls, storedUrls} from '../../data/indexed-db/stored-urls';
 import {virRouter} from '../../router/vir-router';
