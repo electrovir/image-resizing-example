@@ -122,7 +122,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
              * Only place the transition on the hide class so that when the loading wrapper should
              * show up, it shows up instantly.
              */
-            transition: opacity 500ms, visibility 0s 600ms;
+            transition: opacity 100ms, visibility 0s 200ms;
         }
 
         :host(.${unsafeCSS(MutatedClassesEnum.HideLoading)}) .loading-wrapper {
