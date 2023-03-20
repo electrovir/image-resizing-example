@@ -1,8 +1,9 @@
 import {collapseWhiteSpace} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
+import {MessageDirectionEnum} from 'interlocking-iframe-messenger';
 import {TemplateResult} from 'lit';
-import {MessageDirection, MessageType} from './message';
+import {MessageType} from './iframe-messenger';
 import {ImageType, ResizableImageData} from './resizable-image-data';
 
 export function generateIframeDoc(
@@ -169,14 +170,14 @@ export function generateIframeDoc(
             globalThis.addEventListener('message', async (messageEvent) => {
                 const message = messageEvent.data;
 
-                if (message.direction === '${MessageDirection.FromChild}') {
+                if (message.direction === '${MessageDirectionEnum.FromChild}') {
                     return;
                 }
 
                 function sendMessageToParent(data) {
                     const messageForParent = {
                         type: message.type,
-                        direction: '${MessageDirection.FromChild}',
+                        direction: '${MessageDirectionEnum.FromChild}',
                         data,
                     };
                     globalThis.postMessage(messageForParent);

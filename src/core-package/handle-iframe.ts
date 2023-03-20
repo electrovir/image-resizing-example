@@ -1,13 +1,11 @@
 import {addPx} from '@augment-vir/browser';
-import {createDeferredPromiseWrapper, wait} from '@augment-vir/common';
 import {
     Dimensions,
     calculateRatio,
     clampDimensions,
     scaleToConstraints,
 } from './augments/dimensions';
-import {makeAttemptWaitDuration} from './augments/duration';
-import {MessageType, sendPingPongMessage} from './message';
+import {MessageType, iframeMessenger} from './iframe-messenger';
 import {MutatedClassesEnum} from './mutated-classes';
 import {ImageType, ResizableImageData} from './resizable-image-data';
 
@@ -34,54 +32,38 @@ export async function handleIframe({
     forcedFinalImageSize: Dimensions | undefined;
     forcedOriginalImageSize: Dimensions | undefined;
 }): Promise<string> {
-    const startTime = Date.now();
-    const iframeLoadPromise = createDeferredPromiseWrapper();
-    iframeElement.onload = () => {
-        iframeLoadPromise.resolve();
-    };
-
-    let trialAttempt = 0;
-    let waitDuration = 0;
-    while (!getIframeContentWindow(iframeElement) && waitDuration <= maxContentWindowWaitTime) {
-        await wait(makeAttemptWaitDuration(trialAttempt));
-        waitDuration = Date.now() - startTime;
-        trialAttempt++;
-    }
-    if (waitDuration > maxContentWindowWaitTime) {
-        await iframeLoadPromise.promise;
-    }
-
-    await sendPingPongMessage({
+    await iframeMessenger.sendMessageToChild({
         message: {
             type: MessageType.Ready,
         },
-        imageUrl: imageData.imageUrl,
-        getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
+        iframeElement,
     });
 
     if (forcedFinalImageSize) {
-        await sendPingPongMessage({
+        await iframeMessenger.sendMessageToChild({
             message: {
                 type: MessageType.ForceSize,
                 data: forcedFinalImageSize,
             },
-            imageUrl: imageData.imageUrl,
-            getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
+            iframeElement,
         });
     }
 
-    const imageDimensions =
+    const imageDimensions: Dimensions =
         forcedOriginalImageSize ??
-        (await sendPingPongMessage({
-            message: {
-                type: MessageType.SendSize,
-            },
-            imageUrl: imageData.imageUrl,
-            getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
-            verifyData: (size) => {
-                return !isNaN(size.width) && !isNaN(size.height) && !!size.width && !!size.height;
-            },
-        }));
+        (
+            await iframeMessenger.sendMessageToChild({
+                message: {
+                    type: MessageType.SendSize,
+                },
+                iframeElement,
+                verifyChildData(size) {
+                    return (
+                        !isNaN(size.width) && !isNaN(size.height) && !!size.width && !!size.height
+                    );
+                },
+            })
+        ).data;
 
     await handleLoadedImageSize({
         min,
@@ -156,22 +138,20 @@ export async function handleLoadedImageSize({
 
     if (sendSizeMessage) {
         if (ratio > 3) {
-            await sendPingPongMessage({
+            await iframeMessenger.sendMessageToChild({
                 message: {
                     type: MessageType.SendScalingMethod,
                     data: 'pixelated',
                 },
-                imageUrl: imageData.imageUrl,
-                getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
+                iframeElement,
             });
         } else {
-            await sendPingPongMessage({
+            await iframeMessenger.sendMessageToChild({
                 message: {
                     type: MessageType.SendScalingMethod,
                     data: 'default',
                 },
-                imageUrl: imageData.imageUrl,
-                getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
+                iframeElement,
             });
         }
 
@@ -189,13 +169,12 @@ export async function handleLoadedImageSize({
                 width: ratio * forcedScales.width,
                 height: ratio * forcedScales.height,
             };
-            await sendPingPongMessage({
+            await iframeMessenger.sendMessageToChild({
                 message: {
                     type: MessageType.SendScale,
                     data: scales,
                 },
-                imageUrl: imageData.imageUrl,
-                getMessageContext: () => getIframeContentWindow(iframeElement) ?? undefined,
+                iframeElement,
             });
         }
     }
