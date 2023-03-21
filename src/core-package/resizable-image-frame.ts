@@ -5,6 +5,7 @@ import {MessageDirectionEnum} from 'interlocking-iframe-messenger';
 import {TemplateResult} from 'lit';
 import {MessageType} from './iframe-messenger';
 import {ImageType, ResizableImageData} from './resizable-image-data';
+import {textPadding} from './style-constants';
 
 export function generateIframeDoc(
     imageData: ResizableImageData,
@@ -256,7 +257,7 @@ export function generateIframeDoc(
                             if (size.height > message.data.height) {
                                 const oneLine = calculateOneLineHeight();
                                 const totalLines = Math.floor(
-                                    (message.data.height - 16) /* vertical padding */ / oneLine,
+                                    (message.data.height - 2 * ${textPadding.y}) / oneLine,
                                 );
                                 const totalHeight = oneLine * totalLines;
                                 const textElement = document.querySelector('.text');
@@ -364,7 +365,7 @@ export function generateIframeDoc(
                     html.image-type-${ImageType.Text} .text,
                     html.image-type-${ImageType.Json} .text {
                         word-break: break-all;
-                        padding: 8px 16px 0;
+                        padding: ${textPadding.y}px ${textPadding.x}px 0;
                         max-width: 100%;
                         margin: 0;
                         display: -webkit-box;
@@ -380,7 +381,7 @@ export function generateIframeDoc(
                             This can't be on the .text element because of it using -webkit-line-clamp. Padding will expose subsequent lines that
                             should be hidden.
                         */
-                        padding-bottom: 8px;
+                        padding-bottom: ${textPadding.y}px;
                     }
                 </style>
                 <script>

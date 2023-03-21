@@ -203,6 +203,24 @@ export async function handleLoadedImageSize({
                 },
                 iframeElement,
             });
+        } else if (isImageTypeTextLike(imageData.imageType)) {
+            const originalDimensions = forcedFinalImageSize ?? imageDimensions;
+            if (originalDimensions.height < newImageSize.height) {
+                const widthRatio = newImageSize.width / originalDimensions.width;
+                const heightRatio = newImageSize.height / originalDimensions.height;
+
+                const ratio = Math.min(widthRatio, heightRatio);
+                await iframeMessenger.sendMessageToChild({
+                    message: {
+                        type: MessageType.SendScale,
+                        data: {
+                            height: ratio,
+                            width: ratio,
+                        },
+                    },
+                    iframeElement,
+                });
+            }
         }
     }
 }
