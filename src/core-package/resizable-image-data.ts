@@ -1,6 +1,6 @@
-import {parseJson} from '@augment-vir/common';
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
+import {isJson} from './augments/json';
 
 export enum ImageType {
     Html = 'html',
@@ -18,6 +18,15 @@ export type ResizableImageData = {
     imageType: ImageType;
     imageUrl: string;
 };
+
+const textLikeImageTypes: ReadonlyArray<ImageType> = [
+    ImageType.Text,
+    ImageType.Json,
+];
+
+export function isImageTypeTextLike(imageType: ImageType): boolean {
+    return textLikeImageTypes.includes(imageType);
+}
 
 async function determineImageType(contentType: string, imageText: string): Promise<ImageType> {
     if (contentType.includes('video')) {
@@ -75,11 +84,13 @@ function generateTemplateString({
     } else if (imageType === ImageType.Text || imageType === ImageType.Json) {
         return convertTemplateToString(
             html`
-                <p class="text-wrapper">
-                    ${imageText
-                        .replace(/\n/g, '<br />')
-                        .replace(/    /g, '<span class="spacer"></span>')}
-                </p>
+                <div class="text-wrapper">
+                    <p class="text">
+                        ${imageText
+                            .replace(/\n/g, '<br />')
+                            .replace(/    /g, '<span class="spacer"></span>')}
+                    </p>
+                </div>
             `,
         );
     } else if (imageType === ImageType.Audio) {
@@ -91,11 +102,6 @@ function generateTemplateString({
     } else {
         return imageText;
     }
-}
-
-function isJson(imageText: string) {
-    const isValidJson = !!parseJson({jsonString: imageText, errorHandler: () => undefined});
-    return isValidJson;
 }
 
 function formatText(text: string, imageType: ImageType) {

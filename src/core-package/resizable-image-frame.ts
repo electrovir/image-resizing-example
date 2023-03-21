@@ -167,6 +167,22 @@ export function generateIframeDoc(
                 return sizeGrabbers[imageType]();
             }
 
+            function calculateOneLineHeight() {
+                const span = document.createElement('span');
+                span.innerHTML = 'hi';
+                span.style.width = '200px';
+                span.style.position = 'absolute';
+                span.style.visibility = 'hidden';
+                span.style.top = '0';
+                span.style.left = '0';
+                span.style.pointerEvents = 'none';
+                document.body.appendChild(span);
+                const height = span.clientHeight;
+                span.remove();
+
+                return height;
+            }
+
             globalThis.addEventListener('message', async (messageEvent) => {
                 const message = messageEvent.data;
 
@@ -228,6 +244,36 @@ export function generateIframeDoc(
                             getSize();
                             sendMessageToParent();
                         } catch (error) {}
+                        return;
+                    }
+                    case '${MessageType.SizeDetermined}': {
+                        if (
+                            imageType === '${ImageType.Json}' ||
+                            imageType === '${ImageType.Text}'
+                        ) {
+                            const size = getSize();
+
+                            if (size.height > message.data.height) {
+                                const oneLine = calculateOneLineHeight();
+                                const totalLines = Math.floor(
+                                    (message.data.height - 16) /* vertical padding */ / oneLine,
+                                );
+                                const totalHeight = oneLine * totalLines;
+                                const textElement = document.querySelector('.text');
+                                textElement.style.height = totalHeight + 'px';
+                                textElement.style.setProperty('-webkit-line-clamp', totalLines);
+                            }
+
+                            document.documentElement.style.setProperty(
+                                'justify-content',
+                                size.height < message.data.height ? 'center' : 'flex-start',
+                            );
+                        }
+                        sendMessageToParent();
+                        return;
+                    }
+                    default: {
+                        sendMessageToParent();
                         return;
                     }
                 }
@@ -298,13 +344,43 @@ export function generateIframeDoc(
                     html.image-type-${ImageType.Text} body,
                     html.image-type-${ImageType.Json} body {
                         max-width: 100%;
+                        max-height: 100%;
+                        font-family: sans-serif;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
                     }
 
-                    .text-wrapper {
-                        font-family: sans-serif;
-                        word-break: break-all;
-                        padding: 16px;
+                    html.image-type-${ImageType.Text},
+                    html.image-type-${ImageType.Json} {
+                        flex-direction: column;
+                    }
+
+                    html.image-type-${ImageType.Text} .text-wrapper,
+                    html.image-type-${ImageType.Json} .text-wrapper {
                         max-width: 100%;
+                        overflow: hidden;
+                    }
+
+                    html.image-type-${ImageType.Text} .text,
+                    html.image-type-${ImageType.Json} .text {
+                        word-break: break-all;
+                        padding: 8px 16px 0;
+                        max-width: 100%;
+                        margin: 0;
+                        display: -webkit-box;
+                        /* -webkit-line-clamp will be set later by JavaScript */
+                        -webkit-line-clamp: unset;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+
+                    html.image-type-${ImageType.Text} .text-wrapper,
+                    html.image-type-${ImageType.Json} .text-wrapper {
+                        /*
+                            This can't be on the .text element because of it using -webkit-line-clamp. Padding will expose subsequent lines that
+                            should be hidden.
+                        */
+                        padding-bottom: 8px;
                     }
                 </style>
                 <script>

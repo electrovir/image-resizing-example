@@ -1,4 +1,5 @@
 import {addPx} from '@augment-vir/browser';
+import {createDeferredPromiseWrapper} from '@augment-vir/common';
 import {
     Dimensions,
     calculateRatio,
@@ -7,13 +8,32 @@ import {
 } from './augments/dimensions';
 import {MessageType, iframeMessenger} from './iframe-messenger';
 import {MutatedClassesEnum} from './mutated-classes';
-import {ImageType, ResizableImageData} from './resizable-image-data';
+import {ImageType, ResizableImageData, isImageTypeTextLike} from './resizable-image-data';
 
-function getIframeContentWindow(iframeElement: HTMLIFrameElement) {
-    return iframeElement.contentWindow;
+/** Handles slow iframe loading and lazy iframe loading. */
+async function waitForLoad(iframeElement: HTMLIFrameElement) {
+    const iframeLoadPromise = createDeferredPromiseWrapper();
+    iframeElement.onload = () => {
+        iframeLoadPromise.resolve();
+    };
+
+    try {
+        await iframeMessenger.sendMessageToChild({
+            message: {
+                type: MessageType.Ready,
+            },
+            iframeElement,
+        });
+    } catch (error) {
+        await iframeLoadPromise.promise;
+        await iframeMessenger.sendMessageToChild({
+            message: {
+                type: MessageType.Ready,
+            },
+            iframeElement,
+        });
+    }
 }
-
-const maxContentWindowWaitTime = 10_000;
 
 export async function handleIframe({
     min,
@@ -32,12 +52,7 @@ export async function handleIframe({
     forcedFinalImageSize: Dimensions | undefined;
     forcedOriginalImageSize: Dimensions | undefined;
 }): Promise<string> {
-    await iframeMessenger.sendMessageToChild({
-        message: {
-            type: MessageType.Ready,
-        },
-        iframeElement,
-    });
+    await waitForLoad(iframeElement);
 
     if (forcedFinalImageSize) {
         await iframeMessenger.sendMessageToChild({
@@ -77,10 +92,10 @@ export async function handleIframe({
     });
 
     /**
-     * GetIframeContentWindow(iframeElement) can return undefined here if the element is destroyed
-     * while loading is still in progress.
+     * IframeElement.contentWindow can return undefined here if the element is destroyed while
+     * loading is still in progress.
      */
-    return getIframeContentWindow(iframeElement)?.document.documentElement.outerHTML ?? '';
+    return iframeElement.contentWindow?.document.documentElement.outerHTML ?? '';
 }
 
 export async function handleLoadedImageSize({
@@ -107,11 +122,15 @@ export async function handleLoadedImageSize({
         throw new Error(`Could not find frame constraint div.`);
     }
 
-    const newImageSize: Dimensions = scaleToConstraints({
+    const scalingInputs = {
         min,
         max,
         box: forcedFinalImageSize ?? imageDimensions,
-    });
+    } as const;
+
+    const newImageSize: Dimensions = isImageTypeTextLike(imageData.imageType)
+        ? clampDimensions(scalingInputs)
+        : scaleToConstraints(scalingInputs);
 
     frameConstraintDiv.style.width = addPx(Math.floor(newImageSize.width));
     frameConstraintDiv.style.height = addPx(Math.floor(newImageSize.height));
@@ -154,6 +173,14 @@ export async function handleLoadedImageSize({
                 iframeElement,
             });
         }
+
+        await iframeMessenger.sendMessageToChild({
+            message: {
+                type: MessageType.SizeDetermined,
+                data: newImageSize,
+            },
+            iframeElement,
+        });
 
         if (imageData.imageType === ImageType.Html) {
             const forcedScales: Dimensions = forcedFinalImageSize

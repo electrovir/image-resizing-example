@@ -11,6 +11,7 @@ export enum MessageType {
     SendScale = 'set-scale',
     SendScalingMethod = 'set-scaling-method',
     ForceSize = 'force-size',
+    SizeDetermined = 'size-determined',
 }
 
 export type MessageData = {
@@ -32,6 +33,10 @@ export type MessageData = {
     };
     [MessageType.ForceSize]: {
         [MessageDirectionEnum.FromParent]: Dimensions | undefined;
+        [MessageDirectionEnum.FromChild]: undefined;
+    };
+    [MessageType.SizeDetermined]: {
+        [MessageDirectionEnum.FromParent]: Dimensions;
         [MessageDirectionEnum.FromChild]: undefined;
     };
 };

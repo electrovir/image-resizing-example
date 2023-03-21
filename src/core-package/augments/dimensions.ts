@@ -6,6 +6,11 @@ export type Dimensions = {
     height: number;
 };
 
+const defaultBox: Dimensions = {
+    width: 250, // 250 = idk we have to pick SOMETHING
+    height: 250,
+} as const;
+
 /**
  * Min = trying to grow the box to be at least the constraint
  *
@@ -83,8 +88,8 @@ export function scaleToConstraints({min, max, box}: OptionalConstraintsWithBox):
 
     const resizedBox = factorDimensions({box, ratio});
     return {
-        height: Math.floor(resizedBox.height || min?.height || 250), // 250 = idk we have to pick SOMETHING
-        width: Math.floor(resizedBox.width || min?.width || 250), // 250 = idk we have to pick SOMETHING
+        height: Math.floor(resizedBox.height || min?.height || defaultBox.height),
+        width: Math.floor(resizedBox.width || min?.width || defaultBox.width),
     };
 }
 
