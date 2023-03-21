@@ -196,8 +196,9 @@ export function generateIframeDoc(
                         type: message.type,
                         direction: '${MessageDirectionEnum.FromChild}',
                         data,
+                        messageId: message.messageId,
                     };
-                    globalThis.postMessage(messageForParent);
+                    globalThis.parent.postMessage(messageForParent);
                 }
 
                 switch (message.type) {
