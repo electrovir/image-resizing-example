@@ -22,7 +22,7 @@ export function generateIframeDoc(
             function extractSvgSize(svgElement) {
                 const viewBox = svgElement.getAttribute('viewBox');
                 const viewBoxDimensions = viewBox?.match(
-                    /s*(?:[\\d\\.]+)\\s+(?:[\\d\\.]+)\\s+((?:[\\d\\.]+))\\s+((?:[\\d\\.]+))\\s*/,
+                    /s*(?:\\-?[\\d\\.]+)\\s+(?:\\-?[\\d\\.]+)\\s+(\\-?[\\d\\.]+)\\s+(\\-?[\\d\\.]+)\\s*/,
                 );
                 const viewBoxWidth = Number(viewBoxDimensions?.[1]);
                 const viewBoxHeight = Number(viewBoxDimensions?.[2]);
