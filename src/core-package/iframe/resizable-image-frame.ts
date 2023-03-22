@@ -16,6 +16,7 @@ export function generateIframeDoc(
 
     const communicationScript = html`
         <script>
+            function doNothing() {}
             const imageType = '${imageData.imageType}';
             let forcedFinalImageSize = undefined;
 
@@ -37,9 +38,9 @@ export function generateIframeDoc(
                 }
             }
 
-            function extractHtmlSize(element) {
+            function extractHtmlSizeFromTopLevelElements(element, recurse) {
                 if (!element) {
-                    throw new Error('No element found to extract size from.');
+                    return undefined;
                 }
 
                 let size;
@@ -61,14 +62,43 @@ export function generateIframeDoc(
                         );
                     }
                     return size;
+                } else if (recurse) {
+                    return extractHtmlSizeFromTopLevelElements(element.nextElementSibling, true);
                 } else {
-                    return extractHtmlSize(element.nextElementSibling);
+                    return undefined;
                 }
+            }
+
+            function extractHtmlSizeFromAnything() {
+                const allElements = Array.from(document.querySelectorAll('*'));
+                let biggestSize = {
+                    height: 0,
+                    width: 0,
+                };
+                allElements.forEach((child) => {
+                    const childSize = extractHtmlSizeFromTopLevelElements(child);
+                    if (childSize) {
+                        if (childSize.width > biggestSize.width) {
+                            biggestSize.width = childSize.width;
+                        }
+                        if (childSize.height > biggestSize.height) {
+                            biggestSize.height = childSize.height;
+                        }
+                    }
+                });
+
+                return {
+                    width: biggestSize.width || 250,
+                    height: biggestSize.height || 250,
+                };
             }
 
             function getHtmlSize(element = document.body) {
                 const query = '${htmlSizeQuerySelector ?? ''}' || 'body > *';
-                const size = extractHtmlSize(document.querySelector(query));
+                const extractSizeFromHere = document.querySelector(query);
+                const size =
+                    extractHtmlSizeFromTopLevelElements(extractSizeFromHere, true) ??
+                    extractHtmlSizeFromAnything();
 
                 return size;
             }
@@ -212,7 +242,7 @@ export function generateIframeDoc(
                         const scaleDimensions = message.data;
 
                         document
-                            .querySelector('body')
+                            .querySelector('html')
                             .style.setProperty(
                                 'transform',
                                 'scaleX(' +

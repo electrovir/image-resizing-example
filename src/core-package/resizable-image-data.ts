@@ -109,6 +109,9 @@ function formatText(text: string, imageType: ImageType) {
         try {
             return JSON.stringify(JSON.parse(text), null, 4);
         } catch (error) {}
+    } else if (imageType === ImageType.Html) {
+        // strip out console logs
+        return text.replaceAll(/console\.[^\(]+\(/g, 'doNothing(');
     }
     return text;
 }
