@@ -1,6 +1,6 @@
 {
     "name": "@electrovir/resizable-image-element",
-    "version": "5.0.0",
+    "version": "5.0.1",
     "description": "Arbitrary image resizing to fit within arbitrary dimensions.",
     "keywords": [
         "element",
@@ -49,7 +49,7 @@
         "@augment-vir/browser": "^13.2.1",
         "@augment-vir/common": "^13.2.1",
         "@augment-vir/element-vir": "^13.2.1",
-        "interlocking-iframe-messenger": "^2.0.3"
+        "interlocking-iframe-messenger": "^2.0.4"
     },
     "devDependencies": {
         "@augment-vir/browser-testing": "^13.2.1",
