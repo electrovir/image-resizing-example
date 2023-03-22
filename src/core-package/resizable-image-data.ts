@@ -138,8 +138,6 @@ export async function getImageData({
 
     const imageText = textTransformer(formatText(rawText ?? '', imageType));
 
-    console.log({imageText, rawText});
-
     const templateString = generateTemplateString({
         imageText,
         imageType,
