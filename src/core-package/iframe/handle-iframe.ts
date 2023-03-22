@@ -10,6 +10,8 @@ import {ImageType, ResizableImageData, isImageTypeTextLike} from '../resizable-i
 import {MutatedClassesEnum} from '../vir-resizable-image/mutated-classes';
 import {MessageType, iframeMessenger} from './iframe-messenger';
 
+const maxAttemptCount = 15;
+
 /** Handles slow iframe loading and lazy iframe loading. */
 async function waitForLoad(iframeElement: HTMLIFrameElement) {
     const iframeLoadPromise = createDeferredPromiseWrapper();
@@ -23,6 +25,7 @@ async function waitForLoad(iframeElement: HTMLIFrameElement) {
                 type: MessageType.Ready,
             },
             iframeElement,
+            maxAttemptCount,
         });
     } catch (error) {
         await iframeLoadPromise.promise;
@@ -31,6 +34,7 @@ async function waitForLoad(iframeElement: HTMLIFrameElement) {
                 type: MessageType.Ready,
             },
             iframeElement,
+            maxAttemptCount,
         });
     }
 }
@@ -61,6 +65,7 @@ export async function handleIframe({
                 data: forcedFinalImageSize,
             },
             iframeElement,
+            maxAttemptCount,
         });
     }
 
@@ -72,6 +77,7 @@ export async function handleIframe({
                     type: MessageType.SendSize,
                 },
                 iframeElement,
+                maxAttemptCount,
                 verifyChildData(size) {
                     return (
                         !isNaN(size.width) && !isNaN(size.height) && !!size.width && !!size.height
@@ -163,6 +169,7 @@ export async function handleLoadedImageSize({
                     data: 'pixelated',
                 },
                 iframeElement,
+                maxAttemptCount,
             });
         } else {
             await iframeMessenger.sendMessageToChild({
@@ -171,6 +178,7 @@ export async function handleLoadedImageSize({
                     data: 'default',
                 },
                 iframeElement,
+                maxAttemptCount,
             });
         }
 
@@ -180,6 +188,7 @@ export async function handleLoadedImageSize({
                 data: newImageSize,
             },
             iframeElement,
+            maxAttemptCount,
         });
 
         if (imageData.imageType === ImageType.Html) {
@@ -202,6 +211,7 @@ export async function handleLoadedImageSize({
                     data: scales,
                 },
                 iframeElement,
+                maxAttemptCount,
             });
         } else if (isImageTypeTextLike(imageData.imageType)) {
             const originalDimensions = forcedFinalImageSize ?? imageDimensions;
@@ -219,6 +229,7 @@ export async function handleLoadedImageSize({
                         },
                     },
                     iframeElement,
+                    maxAttemptCount,
                 });
             }
         }
