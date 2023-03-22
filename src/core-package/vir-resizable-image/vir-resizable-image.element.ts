@@ -13,6 +13,7 @@ import {
     onDomCreated,
     renderAsyncState,
 } from 'element-vir';
+import {IframeDisconnectedError} from 'interlocking-iframe-messenger';
 import type {TemplateResult} from 'lit';
 import {unsafeCSS} from 'lit';
 import {clampDimensions, Dimensions, scaleToConstraints} from '../augments/dimensions';
@@ -238,7 +239,16 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                     dispatch(new events.settled(true));
                                     host.classList.add(MutatedClassesEnum.HideLoading);
                                 } catch (error) {
-                                    console.error(error);
+                                    if (error instanceof IframeDisconnectedError) {
+                                        /**
+                                         * In this case the iframe was removed so this element
+                                         * itself was removed so we just want to abort without
+                                         * bothering the user.
+                                         */
+                                        return;
+                                    } else {
+                                        console.error(error);
+                                    }
                                 }
                             })}
                         ></iframe>
@@ -276,7 +286,16 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                     dispatch(new events.settled(true));
                                     host.classList.add(MutatedClassesEnum.HideLoading);
                                 } catch (error) {
-                                    console.error(error);
+                                    if (error instanceof IframeDisconnectedError) {
+                                        /**
+                                         * In this case the iframe was removed so this element
+                                         * itself was removed so we just want to abort without
+                                         * bothering the user.
+                                         */
+                                        return;
+                                    } else {
+                                        console.error(error);
+                                    }
                                 }
                             })}
                         ></iframe>
