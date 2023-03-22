@@ -1,5 +1,5 @@
 import {createIframeMessenger, MessageDirectionEnum} from 'interlocking-iframe-messenger';
-import {Dimensions} from './augments/dimensions';
+import {Dimensions} from '../augments/dimensions';
 
 /**
  * These ping and pong messages are used to prevent race conditions between loading the iframe,

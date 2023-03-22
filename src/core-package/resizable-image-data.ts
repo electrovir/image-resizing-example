@@ -113,10 +113,15 @@ function formatText(text: string, imageType: ImageType) {
     return text;
 }
 
-export async function getImageData(
-    imageUrl: string,
-    blockAutoPlay: boolean,
-): Promise<ResizableImageData> {
+export async function getImageData({
+    imageUrl,
+    blockAutoPlay,
+    textTransformer = (input) => input,
+}: {
+    imageUrl: string;
+    blockAutoPlay: boolean;
+    textTransformer?: ((originalText: string) => string) | undefined;
+}): Promise<ResizableImageData> {
     let imageResponse: Response | undefined;
 
     try {
@@ -131,7 +136,9 @@ export async function getImageData(
         : // naively assume it's an image
           ImageType.Image;
 
-    const imageText = formatText(rawText ?? '', imageType);
+    const imageText = textTransformer(formatText(rawText ?? '', imageType));
+
+    console.log({imageText, rawText});
 
     const templateString = generateTemplateString({
         imageText,

@@ -1,4 +1,10 @@
-import {ensureError, extractErrorMessage, filterObject, wait} from '@augment-vir/common';
+import {
+    ensureError,
+    extractErrorMessage,
+    filterObject,
+    JsonCompatibleValue,
+    wait,
+} from '@augment-vir/common';
 import {
     css,
     defineElement,
@@ -9,47 +15,30 @@ import {
 } from 'element-vir';
 import type {TemplateResult} from 'lit';
 import {unsafeCSS} from 'lit';
-import {Dimensions, clampDimensions, scaleToConstraints} from './augments/dimensions';
-import {handleIframe, handleLoadedImageSize} from './handle-iframe';
+import {clampDimensions, Dimensions, scaleToConstraints} from '../augments/dimensions';
+import {handleIframe, handleLoadedImageSize} from '../iframe/handle-iframe';
+import {generateIframeDoc} from '../iframe/resizable-image-frame';
+import {getImageData, ImageType, ResizableImageData} from '../resizable-image-data';
 import {MutatedClassesEnum} from './mutated-classes';
-import {ImageType, ResizableImageData, getImageData} from './resizable-image-data';
-import {generateIframeDoc} from './resizable-image-frame';
-import {defaultResizableImageState} from './resizable-image-state';
+import {VirResizableImageInputs} from './vir-resizable-image-inputs';
+import {defaultResizableImageState} from './vir-resizable-image-state';
 
 const defaultClickCover = html`
     <div class="click-cover"></div>
 `;
 
-export type VirResizableImageInputs = {
-    imageUrl: string;
-    /** The max image size constraints which the image will be resized to fit within. */
-    max?: Dimensions | undefined;
-    /** The min image size constraints which the image will be resized to fit within. */
-    min?: Dimensions | undefined;
-    /** For hard-coding the final image size. Setting this can cause distortions. */
-    forcedFinalImageSize?: Dimensions | undefined;
-    /**
-     * This force the image's dimensions instead of trying to automatically detect the image's
-     * dimensions.
-     */
-    forcedOriginalImageSize?: Dimensions | undefined;
-    /**
-     * String of HTML that will be interpolated into the iframe source code. To run any JS code
-     * before the image size calculations happen, create a <script> tag and set the
-     * "executeBeforeSizing" variable to a function.
-     */
-    extraHtml?: string | undefined | TemplateResult;
-    /** Query selector to use to determine an html result's size. */
-    htmlSizeQuerySelector?: string | undefined;
-    /**
-     * When set to true, videos will not auto play their video (audio is always programmatically
-     * muted).
-     */
-    blockAutoPlay?: boolean | undefined;
-    /** Block interaction with images, even on HTML pages. */
-    blockInteraction?: boolean | undefined;
-    /** Set to true to disable lazy loading. */
-    eagerLoading?: boolean | undefined;
+const nonSerializableKeys: Readonly<{
+    [KeyName in keyof VirResizableImageInputs as Exclude<
+        NonNullable<VirResizableImageInputs[KeyName]>,
+        JsonCompatibleValue
+    > extends never
+        ? KeyName extends 'extraHtml'
+            ? KeyName
+            : never
+        : KeyName]: KeyName;
+}> = {
+    textTransformer: 'textTransformer',
+    extraHtml: 'extraHtml',
 };
 
 const sourceDocKey = 'latest-frame-srcdoc';
@@ -171,13 +160,19 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                     host.classList.remove(MutatedClassesEnum.HideLoading);
                     dispatch(new events.settled(false));
                     host.classList.remove(MutatedClassesEnum.VerticallyCenter);
+                    const imageDataInputs = {
+                        imageUrl: inputs.imageUrl,
+                        blockAutoPlay: !!inputs.blockAutoPlay,
+                        textTransformer: inputs.textTransformer,
+                    };
+
                     try {
-                        return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay);
+                        return getImageData(imageDataInputs);
                     } catch (error) {
                         // try again
                         await wait(1000);
                         try {
-                            return getImageData(inputs.imageUrl, !!inputs.blockAutoPlay);
+                            return getImageData(imageDataInputs);
                         } catch (error) {
                             dispatch(new events.errored(ensureError(error)));
                             throw error;
@@ -185,9 +180,9 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                     }
                 },
                 trigger: {
-                    ...(filterObject(inputs, (key) => key !== 'extraHtml') as Omit<
+                    ...(filterObject(inputs, (key) => !(key in nonSerializableKeys)) as Omit<
                         typeof inputs,
-                        'extraHtml'
+                        keyof typeof nonSerializableKeys
                     >),
                 },
             },
