@@ -111,7 +111,7 @@ function formatText(text: string, imageType: ImageType) {
         } catch (error) {}
     } else if (imageType === ImageType.Html) {
         // strip out console logs
-        return text.replaceAll(/console\.[^\(]+\(/g, 'doNothing(');
+        return text.replaceAll(/console\.\w+/g, 'doNothing');
     }
     return text;
 }
