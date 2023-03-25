@@ -1,3 +1,4 @@
+import {getObjectTypedValues, JsonCompatibleValue} from '@augment-vir/common';
 import {TemplateResult} from 'lit';
 import {Dimensions} from '../augments/dimensions';
 
@@ -36,4 +37,26 @@ export type VirResizableImageInputs = {
      * text based images (like HTML, JSON, Text).
      */
     textTransformer?: (text: string) => string;
+    /** Timeout for each loading phase in milliseconds. */
+    timeoutMs?: number;
 };
+
+export const defaultTimeoutMs: number = 10_000;
+
+const nonSerializableKeysObject: Readonly<
+    Required<{
+        [KeyName in keyof VirResizableImageInputs as Exclude<
+            NonNullable<VirResizableImageInputs[KeyName]>,
+            JsonCompatibleValue
+        > extends never
+            ? KeyName extends 'extraHtml'
+                ? KeyName
+                : never
+            : KeyName]: KeyName;
+    }>
+> = {
+    textTransformer: 'textTransformer',
+    extraHtml: 'extraHtml',
+};
+
+export const nonSerializableKeys = getObjectTypedValues(nonSerializableKeysObject);

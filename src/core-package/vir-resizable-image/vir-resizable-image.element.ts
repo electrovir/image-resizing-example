@@ -1,9 +1,9 @@
 import {
     ensureError,
     extractErrorMessage,
-    filterObject,
-    JsonCompatibleValue,
+    omitObjectKeys,
     wait,
+    wrapPromiseInTimeout,
 } from '@augment-vir/common';
 import {
     css,
@@ -16,33 +16,17 @@ import {
 import {IframeDisconnectedError} from 'interlocking-iframe-messenger';
 import type {TemplateResult} from 'lit';
 import {unsafeCSS} from 'lit';
-import {clampDimensions, Dimensions, scaleToConstraints} from '../augments/dimensions';
+import {Dimensions, clampDimensions, scaleToConstraints} from '../augments/dimensions';
 import {handleIframe, handleLoadedImageSize} from '../iframe/handle-iframe';
 import {generateIframeDoc} from '../iframe/resizable-image-frame';
-import {getImageData, ImageType, ResizableImageData} from '../resizable-image-data';
+import {ImageType, ResizableImageData, getImageData} from '../resizable-image-data';
 import {MutatedClassesEnum} from './mutated-classes';
-import {VirResizableImageInputs} from './vir-resizable-image-inputs';
+import {
+    VirResizableImageInputs,
+    defaultTimeoutMs,
+    nonSerializableKeys,
+} from './vir-resizable-image-inputs';
 import {defaultResizableImageState} from './vir-resizable-image-state';
-
-const defaultClickCover = html`
-    <div class="click-cover"></div>
-`;
-
-const nonSerializableKeys: Readonly<{
-    [KeyName in keyof VirResizableImageInputs as Exclude<
-        NonNullable<VirResizableImageInputs[KeyName]>,
-        JsonCompatibleValue
-    > extends never
-        ? KeyName extends 'extraHtml'
-            ? KeyName
-            : never
-        : KeyName]: KeyName;
-}> = {
-    textTransformer: 'textTransformer',
-    extraHtml: 'extraHtml',
-};
-
-const sourceDocKey = 'latest-frame-srcdoc';
 
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: 'vir-resizable-image',
@@ -155,6 +139,8 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
         }
     },
     renderCallback({state, inputs, updateState, host, dispatch, events}) {
+        const timeoutMs = inputs.timeoutMs ?? defaultTimeoutMs;
+
         updateState({
             imageData: {
                 createPromise: async () => {
@@ -168,7 +154,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                     };
 
                     try {
-                        return getImageData(imageDataInputs);
+                        return wrapPromiseInTimeout(timeoutMs, getImageData(imageDataInputs));
                     } catch (error) {
                         // try again
                         await wait(1000);
@@ -181,10 +167,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                     }
                 },
                 trigger: {
-                    ...(filterObject(inputs, (key) => !(key in nonSerializableKeys)) as Omit<
-                        typeof inputs,
-                        keyof typeof nonSerializableKeys
-                    >),
+                    ...omitObjectKeys(inputs, nonSerializableKeys),
                 },
             },
         });
@@ -227,6 +210,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                         max: maxConstraint,
                                         min: minConstraint,
                                         sendSizeMessage: false,
+                                        timeoutMs,
                                     });
 
                                     /**
@@ -274,6 +258,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                         imageData: resolvedImageData,
                                         forcedFinalImageSize: inputs.forcedFinalImageSize,
                                         forcedOriginalImageSize: clampedForcedOriginalImageSize,
+                                        timeoutMs,
                                     });
 
                                     /**
@@ -367,3 +352,9 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
         `;
     },
 });
+
+const defaultClickCover = html`
+    <div class="click-cover"></div>
+`;
+
+const sourceDocKey = 'latest-frame-srcdoc';
