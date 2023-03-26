@@ -1,6 +1,6 @@
 import {addPx} from '@augment-vir/browser';
-import {areJsonEqual, capitalizeFirstLetter, wait} from '@augment-vir/common';
-import {AsyncState, assign, asyncState, css, html, listen, renderAsyncState} from 'element-vir';
+import {areJsonEqual, capitalizeFirstLetter, MaybePromise, wait} from '@augment-vir/common';
+import {assign, css, html, listen, renderPromise} from 'element-vir';
 import {DimensionConstraints, Dimensions, VirResizableImage} from '../../..';
 import {sanitizeUrls, storedUrls} from '../../data/indexed-db/stored-urls';
 import {virRouter} from '../../router/vir-router';
@@ -22,7 +22,7 @@ export const VirExampleApp = defineVirElementNoInputs({
     tagName: 'vir-example-app',
     stateInit: {
         showConstraints: true,
-        imageUrls: asyncState(storedUrls.get()),
+        imageUrls: storedUrls.get() as MaybePromise<ReadonlyArray<string>>,
         constraints: undefined as DimensionConstraints | undefined,
         router: virRouter,
         urlUpdateDebounce: {promise: undefined, lastSearch: undefined} as {
@@ -139,7 +139,7 @@ export const VirExampleApp = defineVirElementNoInputs({
             cursor: pointer;
         }
     `,
-    renderCallback: ({state, updateState}) => {
+    renderCallback({state, updateState}) {
         if (!state.constraints) {
             const searchParams = state.router.getCurrentRawRoutes().search;
 
@@ -224,122 +224,128 @@ export const VirExampleApp = defineVirElementNoInputs({
             });
         }
 
-        return html`
-            <a href="https://github.com/electrovir/resizable-image-element">
-                <h1>resizable-image-element</h1>
-            </a>
-            <p>Add more image URLs to the input below:</p>
-            <${VirUrlInput}
-                ${assign(VirUrlInput, {
-                    urls: ensuredImageUrls,
-                })}
-                ${listen(VirUrlInput.events.urlsChange, (event) => {
-                    const newUrls = event.detail;
-                    storedUrls.set(newUrls);
-                    updateState({
-                        imageUrls: {
-                            resolvedValue: event.detail,
-                        },
-                    });
-                })}
-            ></${VirUrlInput}>
-            <p>
-                <label class="inline-label">
-                    <input
-                        type="checkbox"
-                        ?checked=${state.showConstraints}
-                        ${listen('input', (event) => {
-                            const checkbox = event.currentTarget as HTMLInputElement;
-                            updateState({
-                                showConstraints: !!checkbox.checked,
-                            });
-                        })}
-                    />
-                    Outline constraint boxes
-                </label>
-            </p>
-            <p>
-                ${(
-                    [
-                        'min',
-                        'max',
-                    ] as const
-                ).map((boundary) => {
-                    const inputs = (
+        return renderPromise(state.imageUrls, ({resolved, error}) => {
+            const imageContainerTemplate = html`
+                <div class="images-container">
+                    ${resolved
+                        ? renderImages(ensuredConstraints, resolved)
+                        : error
+                        ? `Error: ${error.message}`
+                        : 'Loading...'}
+                </div>
+            `;
+
+            return html`
+                <a href="https://github.com/electrovir/resizable-image-element">
+                    <h1>resizable-image-element</h1>
+                </a>
+                <p>Add more image URLs to the input below:</p>
+                <${VirUrlInput}
+                    ${assign(VirUrlInput, {
+                        urls: ensuredImageUrls,
+                    })}
+                    ${listen(VirUrlInput.events.urlsChange, (event) => {
+                        const newUrls = event.detail;
+                        storedUrls.set(newUrls);
+                        updateState({
+                            imageUrls: event.detail,
+                        });
+                    })}
+                ></${VirUrlInput}>
+                <p>
+                    <label class="inline-label">
+                        <input
+                            type="checkbox"
+                            ?checked=${state.showConstraints}
+                            ${listen('input', (event) => {
+                                const checkbox = event.currentTarget as HTMLInputElement;
+                                updateState({
+                                    showConstraints: !!checkbox.checked,
+                                });
+                            })}
+                        />
+                        Outline constraint boxes
+                    </label>
+                </p>
+                <p>
+                    ${(
                         [
-                            'height',
-                            'width',
+                            'min',
+                            'max',
                         ] as const
-                    ).map((axis) => {
-                        const label = [
-                            capitalizeFirstLetter(boundary),
-                            capitalizeFirstLetter(axis),
-                        ].join(' ');
-                        const value = ensuredConstraints[boundary][axis];
+                    ).map((boundary) => {
+                        const inputs = (
+                            [
+                                'height',
+                                'width',
+                            ] as const
+                        ).map((axis) => {
+                            const label = [
+                                capitalizeFirstLetter(boundary),
+                                capitalizeFirstLetter(axis),
+                            ].join(' ');
+                            const value = ensuredConstraints[boundary][axis];
+
+                            return html`
+                                <label>
+                                    ${label}
+                                    <br />
+                                    ${addPx(value)}
+                                    <br />
+                                    <input
+                                        type="range"
+                                        max="1000"
+                                        min="20"
+                                        .value=${value}
+                                        ${listen('input', (event) => {
+                                            updateConstraints(
+                                                event.currentTarget as HTMLInputElement,
+                                                boundary,
+                                                axis,
+                                            );
+                                        })}
+                                    />
+                                </label>
+                            `;
+                        });
 
                         return html`
-                            <label>
-                                ${label}
-                                <br />
-                                ${addPx(value)}
-                                <br />
-                                <input
-                                    type="range"
-                                    max="1000"
-                                    min="20"
-                                    .value=${value}
-                                    ${listen('input', (event) => {
-                                        updateConstraints(
-                                            event.currentTarget as HTMLInputElement,
-                                            boundary,
-                                            axis,
-                                        );
-                                    })}
-                                />
-                            </label>
+                            <div class="constraint-controls">${inputs}</div>
                         `;
-                    });
+                    })}
+                </p>
 
-                    return html`
-                        <div class="constraint-controls">${inputs}</div>
-                    `;
-                })}
-            </p>
-            <div class="images-container">${renderImages(ensuredConstraints, state.imageUrls)}</div>
-        `;
+                ${imageContainerTemplate}
+            `;
+        });
     },
 });
 
-function renderImages(
-    constraints: DimensionConstraints,
-    imageUrls: AsyncState<ReadonlyArray<string>>,
-) {
-    return renderAsyncState(imageUrls, 'Loading...', (resolvedImageUrls) => {
-        return sanitizeUrls(resolvedImageUrls).map((imageUrl) => {
-            const maxStyle = `
+function renderImages(constraints: DimensionConstraints, imageUrls: ReadonlyArray<string>) {
+    return sanitizeUrls(imageUrls).map((imageUrl) => {
+        const maxStyle = `
                 height: ${addPx(constraints.max.height)};
                 max-height: ${addPx(constraints.max.height)};
                 width: ${addPx(constraints.max.width)};
                 max-width: ${addPx(constraints.max.width)}`;
-            const minStyle = `height: ${addPx(constraints.min.height)}; width: ${addPx(
-                constraints.min.width,
-            )}`;
-            return html`
-                <div class="constraint-wrapper max" style=${maxStyle}>
-                    <a target="_blank" rel="noopener noreferrer" href=${imageUrl}>
-                        <${VirResizableImage}
-                            ${assign(VirResizableImage, {
-                                imageUrl,
-                                max: constraints.max,
-                                min: constraints.min,
-                            })}
-                        ></${VirResizableImage}>
-                    </a>
-                    <div class="min-wrapper">
-                        <div class="constraint-wrapper min" style=${minStyle}></div>
-                    </div>
+        const minStyle = `height: ${addPx(constraints.min.height)}; width: ${addPx(
+            constraints.min.width,
+        )}`;
+        return html`
+            <div class="constraint-wrapper max" style=${maxStyle}>
+                <a target="_blank" rel="noopener noreferrer" href=${imageUrl}>
+                    <${VirResizableImage}
+                        ${assign(VirResizableImage, {
+                            imageUrl,
+                            max: constraints.max,
+                            min: constraints.min,
+                        })}
+                    ></${VirResizableImage}>
+                </a>
+                <div class="min-wrapper">
+                    <div class="constraint-wrapper min" style=${minStyle}></div>
                 </div>
-            `;
-        });
+            </div>
+        `;
     });
 }

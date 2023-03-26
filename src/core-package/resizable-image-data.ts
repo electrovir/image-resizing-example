@@ -116,20 +116,24 @@ function formatText(text: string, imageType: ImageType) {
     return text;
 }
 
-export async function getImageData({
-    imageUrl,
-    blockAutoPlay,
-    textTransformer = (input) => input,
-}: {
-    imageUrl: string;
-    blockAutoPlay: boolean;
-    textTransformer?: ((originalText: string) => string) | undefined;
-}): Promise<ResizableImageData> {
-    let imageResponse: Response | undefined;
-
-    try {
-        imageResponse = await fetch(imageUrl);
-    } catch (error) {}
+export async function getImageData(
+    {
+        imageUrl,
+        blockAutoPlay,
+        textTransformer = (input) => input,
+    }: {
+        imageUrl: string;
+        blockAutoPlay: boolean;
+        textTransformer?: ((originalText: string) => string) | undefined;
+    },
+    abortSignal: AbortSignal,
+): Promise<ResizableImageData> {
+    const imageResponse: Response = await fetch(imageUrl, {
+        signal: abortSignal,
+    });
+    if (!imageResponse.ok) {
+        throw new Error(`vir-resizable-image failed to load image from '${imageUrl}'`);
+    }
 
     const contentType = imageResponse?.headers.get('Content-Type')?.toLowerCase() ?? '';
     const rawText = (await imageResponse?.text()) ?? '';
