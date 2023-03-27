@@ -1,31 +1,31 @@
-import {omitObjectKeys, wait, wrapPromiseInTimeout} from '@augment-vir/common';
-import {createCachedPromise} from '@electrovir/cached-promise';
+import {ensureError, omitObjectKeys, wait, wrapPromiseInTimeout} from '@augment-vir/common';
 import {
     css,
     defineElement,
     defineElementEvent,
     html,
-    renderCachedPromise,
+    onDomCreated,
+    renderAsyncState,
     renderIf,
 } from 'element-vir';
+import {IframeDisconnectedError} from 'interlocking-iframe-messenger';
+import type {TemplateResult} from 'lit';
 import {unsafeCSS} from 'lit';
 import {Dimensions, clampDimensions, scaleToConstraints} from '../augments/dimensions';
-import {ResizableImageData, getImageData} from '../resizable-image-data';
-import {renderClickCoverTemplate} from './inner-templates/click-cover-template';
-import {renderIframeTemplate} from './inner-templates/iframe-template';
+import {handleIframe, handleLoadedImageSize} from '../iframe/handle-iframe';
+import {generateIframeDoc} from '../iframe/resizable-image-frame';
+import {ImageType, ResizableImageData, getImageData} from '../resizable-image-data';
 import {MutatedClassesEnum} from './mutated-classes';
-import {sourceDocKey} from './stored-source-doc-key';
 import {
     VirResizableImageInputs,
     defaultTimeoutMs,
     nonSerializableKeys,
 } from './vir-resizable-image-inputs';
+import {defaultResizableImageState} from './vir-resizable-image-state';
 
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: 'vir-resizable-image',
-    stateInit: {
-        imageDataPromise: createCachedPromise<ResizableImageData>(),
-    },
+    stateInit: defaultResizableImageState,
     events: {
         settled: defineElementEvent<boolean>(),
         imageDataCalculated: defineElementEvent<ResizableImageData>(),
@@ -133,8 +133,53 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             iframe.srcdoc = latestSourceDoc;
         }
     },
-    renderCallback({state, inputs, host, dispatch, events}) {
+    renderCallback({state, inputs, updateState, host, dispatch, events}) {
         const timeoutMs = inputs.timeoutMs ?? defaultTimeoutMs;
+
+        const error: Error | undefined =
+            state.imageData instanceof Error ? state.imageData : state.error;
+
+        updateState({
+            imageData: {
+                createPromise: async () => {
+                    host.classList.remove(MutatedClassesEnum.HideLoading);
+                    dispatch(new events.settled(false));
+                    host.classList.remove(MutatedClassesEnum.VerticallyCenter);
+                    const imageDataInputs = {
+                        imageUrl: inputs.imageUrl,
+                        blockAutoPlay: !!inputs.blockAutoPlay,
+                        textTransformer: inputs.textTransformer,
+                    };
+
+                    let result: undefined | ResizableImageData;
+
+                    try {
+                        result = await wrapPromiseInTimeout(
+                            timeoutMs,
+                            getImageData(imageDataInputs),
+                        );
+                    } catch (error) {
+                        // try again
+                        await wait(1000);
+                        try {
+                            result = await getImageData(imageDataInputs);
+                        } catch (error) {
+                            throw error;
+                        }
+                    }
+
+                    if (result) {
+                        return result;
+                    } else {
+                        const error = new Error('no image data result');
+                        throw error;
+                    }
+                },
+                trigger: {
+                    ...omitObjectKeys(inputs, nonSerializableKeys),
+                },
+            },
+        });
 
         const minConstraint =
             inputs.min && inputs.max
@@ -151,102 +196,192 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                   })
                 : undefined;
 
+        const iframeTemplate = renderAsyncState(
+            state.imageData,
+            '',
+            (resolvedImageData) => {
+                dispatch(new events.imageDataCalculated(resolvedImageData));
+                if (resolvedImageData.imageType === ImageType.Pdf) {
+                    return html`
+                        <iframe
+                            src=${resolvedImageData.imageUrl}
+                            ${onDomCreated(async (element) => {
+                                try {
+                                    await handleLoadedImageSize({
+                                        forcedFinalImageSize: inputs.forcedFinalImageSize,
+                                        host,
+                                        iframeElement: element as HTMLIFrameElement,
+                                        imageData: resolvedImageData,
+                                        imageDimensions: maxConstraint ?? {
+                                            width: 500,
+                                            height: 500,
+                                        },
+                                        max: maxConstraint,
+                                        min: minConstraint,
+                                        sendSizeMessage: false,
+                                        timeoutMs,
+                                    });
+
+                                    /**
+                                     * Store the frame source so we can set it to the iframe if this
+                                     * element is ever detached from the DOM. Do not save this data
+                                     * through a state update, as that will cause this element to
+                                     * re-render and make the image blink.
+                                     */
+                                    (host as any)[sourceDocKey] = '';
+                                    dispatch(new events.settled(true));
+                                    host.classList.add(MutatedClassesEnum.HideLoading);
+                                } catch (caught) {
+                                    const error = ensureError(caught);
+                                    if (error instanceof IframeDisconnectedError) {
+                                        /**
+                                         * In this case the iframe was removed so this element
+                                         * itself was removed so we just want to abort without
+                                         * bothering the user.
+                                         */
+                                        return;
+                                    } else {
+                                        console.error(error);
+                                        updateState({error});
+                                        dispatch(new events.errored(error));
+                                    }
+                                }
+                            })}
+                        ></iframe>
+                    `;
+                } else {
+                    return html`
+                        <iframe
+                            loading=${inputs.eagerLoading ? 'eager' : 'lazy'}
+                            referrerpolicy="no-referrer"
+                            scrolling="no"
+                            srcdoc=${generateIframeDoc(
+                                resolvedImageData,
+                                inputs.extraHtml,
+                                inputs.htmlSizeQuerySelector,
+                            )}
+                            ${onDomCreated(async (element) => {
+                                try {
+                                    const latestFrameSource = await handleIframe({
+                                        min: minConstraint,
+                                        max: maxConstraint,
+                                        host,
+                                        iframeElement: element as HTMLIFrameElement,
+                                        imageData: resolvedImageData,
+                                        forcedFinalImageSize: inputs.forcedFinalImageSize,
+                                        forcedOriginalImageSize: clampedForcedOriginalImageSize,
+                                        timeoutMs,
+                                    });
+
+                                    /**
+                                     * Store the frame source so we can set it to the iframe if this
+                                     * element is ever detached from the DOM. Do not save this data
+                                     * through a state update, as that will cause this element to
+                                     * re-render and make the image blink.
+                                     */
+                                    (host as any)[sourceDocKey] = latestFrameSource;
+                                    dispatch(new events.settled(true));
+                                    host.classList.add(MutatedClassesEnum.HideLoading);
+                                } catch (caught) {
+                                    const error = ensureError(caught);
+                                    if (error instanceof IframeDisconnectedError) {
+                                        /**
+                                         * In this case the iframe was removed so this element
+                                         * itself was removed so we just want to abort without
+                                         * bothering the user.
+                                         */
+                                        return;
+                                    } else {
+                                        console.error(error);
+                                        updateState({error});
+                                        dispatch(new events.errored(error));
+                                    }
+                                }
+                            })}
+                        ></iframe>
+                        <slot name="loaded"></slot>
+                    `;
+                }
+            },
+            (error) => {
+                updateState({error});
+                dispatch(new events.errored(ensureError(error)));
+            },
+        ) as string | TemplateResult;
+
+        const clickCoverTemplate = renderAsyncState(
+            state.imageData,
+            defaultClickCover,
+            (resolvedImageData) => {
+                if (
+                    !inputs.blockInteraction &&
+                    [
+                        ImageType.Html,
+                        ImageType.Video,
+                        ImageType.Audio,
+                        ImageType.Pdf,
+                    ].includes(resolvedImageData.imageType)
+                ) {
+                    /**
+                     * In this case the "image" is likely meant to be interactive, so don't block
+                     * mouse interactions.
+                     */
+                    return '';
+                } else {
+                    return defaultClickCover;
+                }
+            },
+            () => '',
+        );
+
+        const frameConstraintStyles = error
+            ? css`
+                  max-width: 100%;
+                  max-height: 100%;
+              `
+            : clampedForcedOriginalImageSize
+            ? css`
+                  width: ${clampedForcedOriginalImageSize.width}px;
+                  height: ${clampedForcedOriginalImageSize.height}px;
+              `
+            : '';
+
         const minSizeStyles = css`
             width: ${minConstraint?.width ?? 250}px;
             height: ${minConstraint?.height ?? 250}px;
         `;
 
-        const abortController: AbortController = new AbortController();
+        const iframeWithConstraintTemplate = html`
+            <div class="frame-constraint" style=${frameConstraintStyles}>${iframeTemplate}</div>
+        `;
 
-        return renderCachedPromise({
-            cachedPromise: state.imageDataPromise,
-            async createPromise() {
-                host.classList.remove(MutatedClassesEnum.HideLoading);
-                dispatch(new events.settled(false));
-                host.classList.remove(MutatedClassesEnum.VerticallyCenter);
-                const imageDataInputs = {
-                    imageUrl: inputs.imageUrl,
-                    blockAutoPlay: !!inputs.blockAutoPlay,
-                    textTransformer: inputs.textTransformer,
-                };
-
-                try {
-                    return await wrapPromiseInTimeout(
-                        timeoutMs,
-                        getImageData(imageDataInputs, abortController.signal),
-                    );
-                } catch (error) {
-                    // try one more time
-                    await wait(2_000);
-                    return await wrapPromiseInTimeout(
-                        timeoutMs,
-                        getImageData(imageDataInputs, abortController.signal),
-                    );
-                }
-            },
-            triggers: {
-                ...omitObjectKeys(inputs, nonSerializableKeys),
-            },
-            render(renderParams) {
-                if (renderParams.error) {
-                    console.error(renderParams.error);
-                }
-                const iframeTemplate = renderIframeTemplate(renderParams, inputs, {
-                    clampedForcedOriginalImageSize,
-                    dispatch,
-                    events,
-                    host,
-                    maxConstraint,
-                    minConstraint,
-                    sourceDocKey,
-                    timeoutMs,
-                    abortController,
-                });
-
-                const clickCoverTemplate = renderClickCoverTemplate(renderParams, inputs);
-
-                const frameConstraintStyles = renderParams.error
-                    ? css`
-                          max-width: 100%;
-                          max-height: 100%;
-                      `
-                    : clampedForcedOriginalImageSize
-                    ? css`
-                          width: ${clampedForcedOriginalImageSize.width}px;
-                          height: ${clampedForcedOriginalImageSize.height}px;
-                      `
-                    : '';
-
-                const frameConstraintTemplate = html`
-                    <div class="frame-constraint" style=${frameConstraintStyles}>
-                        ${iframeTemplate}
+        return html`
+            ${renderIf(
+                !error,
+                html`
+                    <div class="loading-wrapper">
+                        <slot name="loading">Loading...</slot>
                     </div>
-                `;
-
-                return html`
-                    ${renderIf(
-                        !renderParams.error,
-                        html`
-                            <div class="loading-wrapper">
-                                <slot name="loading">Loading...</slot>
-                            </div>
-                        `,
-                    )}
-
-                    <div class="min-size" style=${minSizeStyles}>
-                        ${renderIf(
-                            !renderParams.error,
-                            frameConstraintTemplate,
-                            html`
-                                <div class="error-wrapper">
-                                    <slot name="error">Error: ${renderParams.error?.message}</slot>
-                                </div>
-                            `,
-                        )}
-                    </div>
-                    ${clickCoverTemplate}
-                `;
-            },
-        });
+                `,
+            )}
+            <div class="min-size" style=${minSizeStyles}>
+                ${renderIf(
+                    !!error,
+                    html`
+                        <div class="error-wrapper">
+                            <slot name="error">Error: ${error?.message}</slot>
+                        </div>
+                    `,
+                    iframeWithConstraintTemplate,
+                )}
+            </div>
+            ${clickCoverTemplate}
+        `;
     },
 });
+
+const defaultClickCover = html`
+    <div class="click-cover"></div>
+`;
+
+const sourceDocKey = 'latest-frame-srcdoc';
