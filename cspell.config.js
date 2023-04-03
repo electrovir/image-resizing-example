@@ -8,8 +8,5 @@ module.exports = {
     ],
     words: [
         ...baseConfig.words,
-        'iframe',
-        'referrerpolicy',
-        'iframes',
     ],
 };
