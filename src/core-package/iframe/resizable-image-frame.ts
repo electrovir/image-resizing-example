@@ -117,21 +117,23 @@ export function generateIframeDoc(
                     throw new Error('Failed to find any SVG elements');
                 }
 
-                const svgElement = svgElements.find((svgElement) => !!extractSvgSize(svgElement));
+                const svgElementWithSize = svgElements.find(
+                    (svgElement) => !!extractSvgSize(svgElement),
+                );
 
-                if (!svgElement) {
-                    throw new Error('Found no SVG element with dimensions');
+                if (!svgElementWithSize) {
+                    return {width: 1024, height: 1024};
                 }
 
-                const {height, width} = forcedFinalImageSize ?? extractSvgSize(svgElement);
+                const {height, width} = forcedFinalImageSize ?? extractSvgSize(svgElementWithSize);
 
-                if (!svgElement.getAttribute('viewBox')) {
-                    svgElement.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+                if (!svgElementWithSize.getAttribute('viewBox')) {
+                    svgElementWithSize.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
                 }
-                svgElement.removeAttribute('width');
-                svgElement.removeAttribute('height');
-                svgElement.style.removeProperty('width');
-                svgElement.style.removeProperty('height');
+                svgElementWithSize.removeAttribute('width');
+                svgElementWithSize.removeAttribute('height');
+                svgElementWithSize.style.removeProperty('width');
+                svgElementWithSize.style.removeProperty('height');
 
                 return {width, height};
             }
