@@ -142,9 +142,26 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
         updateState({
             imageData: {
                 createPromise: async () => {
+                    if (state.error) {
+                        updateState({error: undefined});
+                    }
                     host.classList.remove(MutatedClassesEnum.HideLoading);
                     dispatch(new events.settled(false));
                     host.classList.remove(MutatedClassesEnum.VerticallyCenter);
+                    if (!inputs.imageUrl) {
+                        /**
+                         * Return a promise that doesn't resolve while the imageUrl is empty so that
+                         * we think we're in the loading state.
+                         */
+                        return new Promise<ResizableImageData>(async (resolve, reject) => {
+                            // give the consumer time to set this to an actual value
+                            await wait(timeoutMs);
+                            reject(
+                                new Error(`An imageUrl was never provided to vir-resizable-image.`),
+                            );
+                        });
+                    }
+
                     const imageDataInputs = {
                         imageUrl: inputs.imageUrl,
                         blockAutoPlay: !!inputs.blockAutoPlay,
