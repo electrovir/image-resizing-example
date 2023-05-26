@@ -1,7 +1,7 @@
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
 import {isJson} from './augments/json';
-import {ImageResponse, loadImageData} from './image-data-cache';
+import {LoadedImageData, loadImageData} from './image-data-cache';
 
 export enum ImageType {
     Html = 'html',
@@ -121,12 +121,14 @@ export async function getImageData({
     imageUrl,
     blockAutoPlay,
     textTransformer = (input) => input,
+    allowPersistentCache,
 }: {
     imageUrl: string;
     blockAutoPlay: boolean;
     textTransformer?: ((originalText: string) => string) | undefined;
+    allowPersistentCache: boolean;
 }): Promise<ResizableImageData> {
-    const imageResponse: ImageResponse = await loadImageData(imageUrl);
+    const imageResponse: LoadedImageData = await loadImageData(imageUrl, allowPersistentCache);
 
     if (!imageResponse.response.ok) {
         throw new Error(`Failed to load '${imageUrl}'`);

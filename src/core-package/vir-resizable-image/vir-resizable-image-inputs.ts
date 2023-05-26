@@ -39,6 +39,12 @@ export type VirResizableImageInputs = {
     textTransformer?: (text: string) => string;
     /** Timeout for each loading phase in milliseconds. */
     timeoutMs?: number;
+    /**
+     * Set this to true to block usage of the persistent cache, which lasts longer than a single
+     * session. Settings this to true will negatively impact performance but will make sure images
+     * are up to date.
+     */
+    blockPersistentCache?: boolean;
 };
 
 export const defaultTimeoutMs: number = 10_000;

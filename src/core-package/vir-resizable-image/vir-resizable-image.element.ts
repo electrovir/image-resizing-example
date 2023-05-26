@@ -162,10 +162,11 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                         });
                     }
 
-                    const imageDataInputs = {
+                    const imageDataInputs: Parameters<typeof getImageData>[0] = {
                         imageUrl: inputs.imageUrl,
                         blockAutoPlay: !!inputs.blockAutoPlay,
                         textTransformer: inputs.textTransformer,
+                        allowPersistentCache: !inputs.blockPersistentCache,
                     };
 
                     let result: undefined | ResizableImageData;
