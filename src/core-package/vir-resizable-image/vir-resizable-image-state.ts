@@ -1,5 +1,5 @@
 import {asyncState} from 'element-vir';
-import {ResizableImageData} from '../resizable-image-data';
+import {ResizableImageData} from '../image-data';
 
 export const defaultResizableImageState = {
     imageData: asyncState<ResizableImageData>(),

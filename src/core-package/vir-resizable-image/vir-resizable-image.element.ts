@@ -14,7 +14,7 @@ import {unsafeCSS} from 'lit';
 import {Dimensions, clampDimensions, scaleToConstraints} from '../augments/dimensions';
 import {handleIframe, handleLoadedImageSize} from '../iframe/handle-iframe';
 import {generateIframeDoc} from '../iframe/resizable-image-frame';
-import {ImageType, ResizableImageData, getImageData} from '../resizable-image-data';
+import {ImageType, ResizableImageData, getImageData} from '../image-data';
 import {MutatedClassesEnum} from './mutated-classes';
 import {
     VirResizableImageInputs,
@@ -154,7 +154,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                          * we think we're in the loading state.
                          */
                         return new Promise<ResizableImageData>(async (resolve, reject) => {
-                            // give the consumer time to set this to an actual value
+                            // give the consumer enough time to set this to an actual value
                             await wait(timeoutMs);
                             reject(
                                 new Error(`An imageUrl was never provided to vir-resizable-image.`),

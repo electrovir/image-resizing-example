@@ -1,6 +1,7 @@
 import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
 import {isJson} from './augments/json';
+import {ImageResponse, loadImageData} from './image-data-cache';
 
 export enum ImageType {
     Html = 'html',
@@ -125,16 +126,16 @@ export async function getImageData({
     blockAutoPlay: boolean;
     textTransformer?: ((originalText: string) => string) | undefined;
 }): Promise<ResizableImageData> {
-    const imageResponse = await fetch(imageUrl);
+    const imageResponse: ImageResponse = await loadImageData(imageUrl);
 
-    if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch '${imageUrl}'`);
+    if (!imageResponse.response.ok) {
+        throw new Error(`Failed to load '${imageUrl}'`);
     }
 
-    const contentType = imageResponse?.headers.get('Content-Type')?.toLowerCase() ?? '';
-    const rawText = (await imageResponse?.text()) ?? '';
+    const contentType = imageResponse.response.headers.get('Content-Type')?.toLowerCase() ?? '';
+    const rawText = (await imageResponse.response.text()) ?? '';
 
-    const imageType = imageResponse
+    const imageType = imageResponse.response
         ? await determineImageType(contentType, rawText)
         : // naively assume it's an image
           ImageType.Image;
@@ -144,13 +145,13 @@ export async function getImageData({
     const templateString = generateTemplateString({
         imageText,
         imageType,
-        imageUrl,
+        imageUrl: imageResponse.blobUrl,
         blockAutoPlay,
     });
 
     return {
         templateString,
-        imageUrl,
+        imageUrl: imageResponse.blobUrl,
         imageType,
     };
 }

@@ -6,7 +6,7 @@ import {
     clampDimensions,
     scaleToConstraints,
 } from '../augments/dimensions';
-import {ImageType, ResizableImageData, isImageTypeTextLike} from '../resizable-image-data';
+import {ImageType, ResizableImageData, isImageTypeTextLike} from '../image-data';
 import {MutatedClassesEnum} from '../vir-resizable-image/mutated-classes';
 import {MessageType, iframeMessenger} from './iframe-messenger';
 

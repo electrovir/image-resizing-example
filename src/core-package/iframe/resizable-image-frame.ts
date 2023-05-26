@@ -3,7 +3,7 @@ import {convertTemplateToString} from '@augment-vir/element-vir';
 import {html} from 'element-vir';
 import {MessageDirectionEnum} from 'interlocking-iframe-messenger';
 import {TemplateResult} from 'lit';
-import {ImageType, ResizableImageData} from '../resizable-image-data';
+import {ImageType, ResizableImageData} from '../image-data';
 import {textPadding} from '../style-constants';
 import {MessageType} from './iframe-messenger';
 
