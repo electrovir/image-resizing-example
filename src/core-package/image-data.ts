@@ -128,32 +128,26 @@ export async function getImageData({
     textTransformer?: ((originalText: string) => string) | undefined;
     allowPersistentCache: boolean;
 }): Promise<ResizableImageData> {
-    const imageResponse: LoadedImageData = await loadImageData(imageUrl, allowPersistentCache);
+    const loadedImageData: LoadedImageData = await loadImageData(imageUrl, allowPersistentCache);
 
-    if (!imageResponse.response.ok) {
+    if (!loadedImageData.ok) {
         throw new Error(`Failed to load '${imageUrl}'`);
     }
 
-    const contentType = imageResponse.response.headers.get('Content-Type')?.toLowerCase() ?? '';
-    const rawText = (await imageResponse.response.text()) ?? '';
+    const imageType = await determineImageType(loadedImageData.contentType, loadedImageData.text);
 
-    const imageType = imageResponse.response
-        ? await determineImageType(contentType, rawText)
-        : // naively assume it's an image
-          ImageType.Image;
-
-    const imageText = textTransformer(formatText(rawText ?? '', imageType));
+    const imageText = textTransformer(formatText(loadedImageData.text, imageType));
 
     const templateString = generateTemplateString({
         imageText,
         imageType,
-        imageUrl: imageResponse.blobUrl,
+        imageUrl: loadedImageData.blobUrl,
         blockAutoPlay,
     });
 
     return {
         templateString,
-        imageUrl: imageResponse.blobUrl,
+        imageUrl: loadedImageData.blobUrl,
         imageType,
     };
 }

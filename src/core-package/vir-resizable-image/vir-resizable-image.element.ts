@@ -12,6 +12,7 @@ import {IframeDisconnectedError} from 'interlocking-iframe-messenger';
 import type {TemplateResult} from 'lit';
 import {unsafeCSS} from 'lit';
 import {Dimensions, clampDimensions, scaleToConstraints} from '../augments/dimensions';
+import {resizableImageElementTagName} from '../element-tag-name';
 import {handleIframe, handleLoadedImageSize} from '../iframe/handle-iframe';
 import {generateIframeDoc} from '../iframe/resizable-image-frame';
 import {ImageType, ResizableImageData, getImageData} from '../image-data';
@@ -24,7 +25,7 @@ import {
 import {defaultResizableImageState} from './vir-resizable-image-state';
 
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
-    tagName: 'vir-resizable-image',
+    tagName: resizableImageElementTagName,
     stateInit: defaultResizableImageState,
     events: {
         settled: defineElementEvent<boolean>(),
