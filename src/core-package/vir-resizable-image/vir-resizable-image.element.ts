@@ -231,10 +231,11 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                         host,
                                         iframeElement: element as HTMLIFrameElement,
                                         imageData: resolvedImageData,
-                                        imageDimensions: maxConstraint ?? {
+                                        initialImageDimensions: maxConstraint ?? {
                                             width: 500,
                                             height: 500,
                                         },
+                                        forcedOriginalImageSize: clampedForcedOriginalImageSize,
                                         max: maxConstraint,
                                         min: minConstraint,
                                         sendSizeMessage: false,

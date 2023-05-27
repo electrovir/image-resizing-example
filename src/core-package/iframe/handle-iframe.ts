@@ -71,7 +71,7 @@ export async function handleIframe({
         });
     }
 
-    const imageDimensions: Dimensions =
+    const initialImageDimensions: Dimensions =
         forcedOriginalImageSize ??
         (
             await iframeMessenger.sendMessageToChild({
@@ -91,7 +91,8 @@ export async function handleIframe({
     await handleLoadedImageSize({
         min,
         max,
-        imageDimensions,
+        initialImageDimensions,
+        forcedOriginalImageSize,
         host,
         iframeElement,
         imageData,
@@ -110,7 +111,8 @@ export async function handleIframe({
 export async function handleLoadedImageSize({
     min,
     max,
-    imageDimensions,
+    initialImageDimensions,
+    forcedOriginalImageSize,
     host,
     iframeElement,
     imageData,
@@ -120,7 +122,8 @@ export async function handleLoadedImageSize({
 }: {
     min: Dimensions | undefined;
     max: Dimensions | undefined;
-    imageDimensions: Dimensions;
+    initialImageDimensions: Dimensions;
+    forcedOriginalImageSize: Dimensions | undefined;
     host: HTMLElement;
     iframeElement: HTMLIFrameElement;
     imageData: ResizableImageData;
@@ -136,7 +139,7 @@ export async function handleLoadedImageSize({
     const scalingInputs = {
         min,
         max,
-        box: forcedFinalImageSize ?? imageDimensions,
+        box: forcedFinalImageSize ?? initialImageDimensions,
     } as const;
 
     const newImageSize: Dimensions = isImageTypeTextLike(imageData.imageType)
@@ -163,7 +166,7 @@ export async function handleLoadedImageSize({
     const ratio = calculateRatio({
         min,
         max,
-        box: forcedFinalImageSize ?? imageDimensions,
+        box: forcedFinalImageSize ?? initialImageDimensions,
     });
 
     if (sendSizeMessage) {
@@ -195,6 +198,27 @@ export async function handleLoadedImageSize({
             iframeElement,
             timeoutMs,
         });
+
+        // Get image dimension again since host size dimension has changed
+        const imageDimensions: Dimensions =
+            forcedOriginalImageSize ??
+            (
+                await iframeMessenger.sendMessageToChild({
+                    message: {
+                        type: MessageType.SendSize,
+                    },
+                    iframeElement,
+                    timeoutMs,
+                    verifyChildData(size) {
+                        return (
+                            !isNaN(size.width) &&
+                            !isNaN(size.height) &&
+                            !!size.width &&
+                            !!size.height
+                        );
+                    },
+                })
+            ).data;
 
         if (imageData.imageType === ImageType.Html) {
             const forcedScales: Dimensions = forcedFinalImageSize
