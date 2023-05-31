@@ -10,8 +10,6 @@ import {ImageType, ResizableImageData, isImageTypeTextLike} from '../image-data'
 import {MutatedClassesEnum} from '../vir-resizable-image/mutated-classes';
 import {MessageType, iframeMessenger} from './iframe-messenger';
 
-const maxAttemptCount = 15;
-
 /** Handles slow iframe loading and lazy iframe loading. */
 async function waitForLoad(iframeElement: HTMLIFrameElement, timeoutMs: number) {
     const iframeLoadPromise = createDeferredPromiseWrapper();

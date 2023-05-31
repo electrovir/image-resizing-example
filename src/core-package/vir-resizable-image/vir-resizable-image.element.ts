@@ -60,6 +60,12 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
         }
 
         .frame-constraint {
+            /*
+                Make the frame constraint initially fit to the .min-size wrapper.
+            */
+            width: 100%;
+            height: 100%;
+
             position: relative;
             transition: 100ms;
             z-index: 100;
