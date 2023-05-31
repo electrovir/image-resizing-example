@@ -1,6 +1,6 @@
 import {addPx} from '@augment-vir/browser';
 import {areJsonEqual, capitalizeFirstLetter, wait} from '@augment-vir/common';
-import {AsyncState, assign, asyncState, css, html, listen, renderAsyncState} from 'element-vir';
+import {AsyncProp, assign, asyncProp, css, html, listen, renderAsync} from 'element-vir';
 import {DimensionConstraints, Dimensions, VirResizableImage} from '../../..';
 import {sanitizeUrls, storedUrls} from '../../data/indexed-db/stored-urls';
 import {virRouter} from '../../router/vir-router';
@@ -20,9 +20,9 @@ const defaultConstraints: DimensionConstraints = {
 
 export const VirExampleApp = defineVirElementNoInputs({
     tagName: 'vir-example-app',
-    stateInit: {
+    stateInitStatic: {
         showConstraints: true,
-        imageUrls: asyncState(storedUrls.get()),
+        imageUrls: asyncProp(storedUrls.get()),
         constraints: undefined as DimensionConstraints | undefined,
         router: virRouter,
         urlUpdateDebounce: {promise: undefined, lastSearch: undefined} as {
@@ -31,9 +31,9 @@ export const VirExampleApp = defineVirElementNoInputs({
         },
     },
     hostClasses: {
-        showConstraints: ({state}) => state.showConstraints,
+        'vir-example-app-show-constraints': ({state}) => state.showConstraints,
     },
-    styles: ({hostClassSelectors}) => css`
+    styles: ({hostClasses}) => css`
         :host {
             display: flex;
             flex-direction: column;
@@ -94,15 +94,15 @@ export const VirExampleApp = defineVirElementNoInputs({
             position: relative;
         }
 
-        ${hostClassSelectors.showConstraints} .constraint-wrapper.max {
+        ${hostClasses['vir-example-app-show-constraints'].selector} .constraint-wrapper.max {
             border-color: red;
         }
 
-        ${hostClassSelectors.showConstraints} .constraint-wrapper.min {
+        ${hostClasses['vir-example-app-show-constraints'].selector} .constraint-wrapper.min {
             border-color: lime;
         }
 
-        ${hostClassSelectors.showConstraints} ${VirResizableImage} {
+        ${hostClasses['vir-example-app-show-constraints'].selector} ${VirResizableImage} {
             border-color: blue;
         }
 
@@ -312,9 +312,9 @@ export const VirExampleApp = defineVirElementNoInputs({
 
 function renderImages(
     constraints: DimensionConstraints,
-    imageUrls: AsyncState<ReadonlyArray<string>>,
+    imageUrls: AsyncProp<ReadonlyArray<string>>,
 ) {
-    return renderAsyncState(imageUrls, 'Loading...', (resolvedImageUrls) => {
+    return renderAsync(imageUrls, 'Loading...', (resolvedImageUrls) => {
         return sanitizeUrls(resolvedImageUrls).map((imageUrl) => {
             const maxStyle = `
                 height: ${addPx(constraints.max.height)};

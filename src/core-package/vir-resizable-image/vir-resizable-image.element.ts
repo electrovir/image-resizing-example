@@ -5,7 +5,7 @@ import {
     defineElementEvent,
     html,
     onDomCreated,
-    renderAsyncState,
+    renderAsync,
     renderIf,
 } from 'element-vir';
 import {IframeDisconnectedError} from 'interlocking-iframe-messenger';
@@ -26,7 +26,7 @@ import {defaultResizableImageState} from './vir-resizable-image-state';
 
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: resizableImageElementTagName,
-    stateInit: defaultResizableImageState,
+    stateInitStatic: defaultResizableImageState,
     events: {
         settled: defineElementEvent<boolean>(),
         imageDataCalculated: defineElementEvent<ResizableImageData>(),
@@ -221,7 +221,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                   })
                 : undefined;
 
-        const iframeTemplate = renderAsyncState(
+        const iframeTemplate = renderAsync(
             state.imageData,
             '',
             (resolvedImageData) => {
@@ -334,7 +334,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             },
         ) as string | TemplateResult;
 
-        const clickCoverTemplate = renderAsyncState(
+        const clickCoverTemplate = renderAsync(
             state.imageData,
             defaultClickCover,
             (resolvedImageData) => {
