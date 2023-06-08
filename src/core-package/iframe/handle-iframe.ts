@@ -6,7 +6,12 @@ import {
     clampDimensions,
     scaleToConstraints,
 } from '../augments/dimensions';
-import {ImageType, ResizableImageData, isImageTypeTextLike} from '../image-data';
+import {
+    ImageType,
+    ResizableImageData,
+    isImageTypeAudioLike,
+    isImageTypeTextLike,
+} from '../image-data';
 import {MutatedClassesEnum} from '../vir-resizable-image/mutated-classes';
 import {MessageType, iframeMessenger} from './iframe-messenger';
 
@@ -137,9 +142,10 @@ export async function handleLoadedImageSize({
         box: forcedFinalImageSize ?? imageDimensions,
     } as const;
 
-    const newImageSize: Dimensions = isImageTypeTextLike(imageData.imageType)
-        ? clampDimensions(scalingInputs)
-        : scaleToConstraints(scalingInputs);
+    const newImageSize: Dimensions =
+        isImageTypeTextLike(imageData.imageType) || isImageTypeAudioLike(imageData.imageType)
+            ? clampDimensions(scalingInputs)
+            : scaleToConstraints(scalingInputs);
 
     frameConstraintDiv.style.width = addPx(Math.floor(newImageSize.width));
     frameConstraintDiv.style.height = addPx(Math.floor(newImageSize.height));
