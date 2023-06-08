@@ -1,44 +1,34 @@
-import {isTruthy, makeWritable} from '@augment-vir/common';
-import Dexie, {Table} from 'dexie';
+import {isRuntimeTypeOf, isTruthy, makeWritable} from '@augment-vir/common';
+import localForage from 'localforage-esm';
 import {virRouter} from '../../router/vir-router';
 
 const defaultImageUrls: string[] = [
     'https://files.porsche.com/filestore/image/multimedia/none/992-gt3-modelimage-sideshot/model/765dfc51-51bc-11eb-80d1-005056bbdc38/porsche-model.png',
 ];
 
-/**
- * This should really be simple enough for localStorage, but Safari sometimes doesn't persist
- * localStorage on localhost.
- */
+const storageInstance = localForage.createInstance({
+    /** IndexedDB database name. */
+    name: 'resizable-image-element-example-storage',
+});
 
-const databaseName = 'resizable-image-element-storage';
-class StoredUrlsDatabase extends Dexie {
-    public storedUrls!: Table<{url: string; index: number}, number>;
-
-    public constructor() {
-        super(databaseName);
-        this.version(1).stores({
-            /** & designates the unique key: https://dexie.org/docs/Version/Version.stores() */
-            storedUrls: '&index',
-        });
-    }
-}
-
-const database = new StoredUrlsDatabase();
+const storedUrlsKey = 'stored-urls';
 
 export const storedUrls = {
     async set(urls: ReadonlyArray<string>): Promise<void> {
-        const cleanedUrls = sanitizeUrls(urls).map((url, index) => {
-            return {index, url};
+        const cleanedUrls = sanitizeUrls(urls).map((cleanedUrl) => {
+            return cleanedUrl;
         });
 
-        await database.storedUrls.clear();
-        await database.storedUrls.bulkPut(cleanedUrls);
+        await storageInstance.clear();
+        await storageInstance.setItem(storedUrlsKey, cleanedUrls);
     },
     async get(): Promise<ReadonlyArray<string>> {
-        const savedData = await database.storedUrls.toArray();
+        const storedImageUrls = await storageInstance.getItem(storedUrlsKey);
 
-        const imageUrls = savedData.map((entry) => entry.url);
+        const imageUrls: ReadonlyArray<unknown> = isRuntimeTypeOf(storedImageUrls, 'array')
+            ? storedImageUrls
+            : [];
+
         const cleanedUrls = sanitizeUrls(imageUrls);
 
         return readImageUrlsFromUrl(cleanedUrls.length ? cleanedUrls : defaultImageUrls);
@@ -55,8 +45,14 @@ function readImageUrlsFromUrl(fallback: ReadonlyArray<string>): string[] {
         return makeWritable(fallback);
     }
 }
-export function sanitizeUrls(imageUrls: ReadonlyArray<string>): string[] {
+export function sanitizeUrls(imageUrls: ReadonlyArray<unknown>): string[] {
     return imageUrls
-        .map((imageUrl) => imageUrl.replace(/^"/, '').replace(/"$/, '').trim())
+        .map((imageUrl) => {
+            if (typeof imageUrl !== 'string') {
+                return '';
+            }
+
+            return imageUrl.replace(/^"/, '').replace(/"$/, '').trim();
+        })
         .filter(isTruthy);
 }
