@@ -25,8 +25,16 @@ const textLikeImageTypes: ReadonlyArray<ImageType> = [
     ImageType.Json,
 ];
 
+const audioLikeImageTypes: ReadonlyArray<ImageType> = [
+    ImageType.Audio,
+];
+
 export function isImageTypeTextLike(imageType: ImageType): boolean {
     return textLikeImageTypes.includes(imageType);
+}
+
+export function isImageTypeAudioLike(imageType: ImageType): boolean {
+    return audioLikeImageTypes.includes(imageType);
 }
 
 async function determineImageType(contentType: string, imageText: string): Promise<ImageType> {
