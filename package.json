@@ -1,6 +1,6 @@
 {
     "name": "@electrovir/resizable-image-element",
-    "version": "6.0.0",
+    "version": "6.0.1",
     "description": "Arbitrary image resizing to fit within arbitrary dimensions.",
     "keywords": [
         "element",
@@ -37,7 +37,7 @@
         "publish": "virmator publish \"npm run test:all && npm run compile\"",
         "start": "virmator frontend",
         "test": "virmator test-web",
-        "test:all": "concurrently --kill-others-on-fail \"npm run test:types\" \"npm run test:coverage\" \"npm run test:spelling\" \"npm run test:format\" \"npm run test:docs\"",
+        "test:all": "concurrently --kill-others-on-fail -c auto --colors --names types,tests,spelling,format,docs \"npm run test:types\" \"npm run test:coverage\" \"npm run test:spelling\" \"npm run test:format\" \"npm run test:docs\"",
         "test:coverage": "npm run test coverage",
         "test:docs": "virmator code-in-markdown check",
         "test:format": "virmator format check",
