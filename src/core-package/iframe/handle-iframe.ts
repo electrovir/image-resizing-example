@@ -1,5 +1,4 @@
-import {addPx} from '@augment-vir/browser';
-import {createDeferredPromiseWrapper} from '@augment-vir/common';
+import {addPx, createDeferredPromiseWrapper} from '@augment-vir/common';
 import {
     Dimensions,
     calculateRatio,

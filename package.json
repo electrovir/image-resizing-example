@@ -46,17 +46,17 @@
         "test:watch": "web-test-runner --config configs/web-test-runner.config.mjs --only-one-browser --watch"
     },
     "dependencies": {
-        "@augment-vir/browser": "^14.4.0",
-        "@augment-vir/common": "^14.4.0",
-        "@augment-vir/element-vir": "^14.4.0",
+        "@augment-vir/browser": "^15.0.0",
+        "@augment-vir/common": "^15.0.0",
+        "@augment-vir/element-vir": "^15.0.0",
         "element-vir": "^13.0.4",
         "interlocking-iframe-messenger": "^3.1.2",
         "localforage": "^1.10.0",
         "localforage-esm": "^1.10.0"
     },
     "devDependencies": {
-        "@augment-vir/browser-testing": "^14.4.0",
-        "@augment-vir/node-js": "^14.4.0",
+        "@augment-vir/browser-testing": "^15.0.0",
+        "@augment-vir/node-js": "^15.0.0",
         "@open-wc/testing": "^3.2.0",
         "@types/chai": "^4.3.5",
         "@types/mocha": "^10.0.1",

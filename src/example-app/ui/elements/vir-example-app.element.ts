@@ -1,5 +1,4 @@
-import {addPx} from '@augment-vir/browser';
-import {areJsonEqual, capitalizeFirstLetter, wait} from '@augment-vir/common';
+import {addPx, areJsonEqual, capitalizeFirstLetter, wait} from '@augment-vir/common';
 import {AsyncProp, assign, asyncProp, css, html, listen, renderAsync} from 'element-vir';
 import {DimensionConstraints, Dimensions, VirResizableImage} from '../../..';
 import {sanitizeUrls, storedUrls} from '../../data/indexed-db/stored-urls';
