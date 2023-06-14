@@ -192,6 +192,36 @@ export function generateIframeDoc(
                 ${ImageType.Audio}: getAudioSize,
             };
 
+            function isVideoLoaded() {
+                const video = document.querySelector('video');
+
+                if (video) {
+                    return video.readyState >= 3;
+                } else {
+                    return false;
+                }
+            }
+
+            function isImageLoaded() {
+                const image = document.querySelector('img');
+
+                return image.complete;
+            }
+
+            const loadedGrabbers = {
+                ${ImageType.Svg}: () => true,
+                ${ImageType.Html}: () => true,
+                ${ImageType.Image}: () => true,
+                ${ImageType.Video}: isVideoLoaded,
+                ${ImageType.Text}: () => true,
+                ${ImageType.Json}: () => true,
+                ${ImageType.Audio}: isImageLoaded,
+            };
+
+            function isLoaded() {
+                return loadedGrabbers[imageType]();
+            }
+
             if (!(imageType in sizeGrabbers)) {
                 throw new Error('No size grabber exists for image type "' + imageType + '"');
             }
@@ -234,7 +264,13 @@ export function generateIframeDoc(
                 }
 
                 switch (message.type) {
-                    case '${MessageType.Ready}': {
+                    case '${MessageType.ImageElementLoaded}': {
+                        if (isLoaded()) {
+                            sendMessageToParent();
+                        }
+                        return;
+                    }
+                    case '${MessageType.FrameReady}': {
                         if (!!document.querySelector('body')) {
                             sendMessageToParent();
                         }

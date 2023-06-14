@@ -24,7 +24,7 @@ async function waitForLoad(iframeElement: HTMLIFrameElement, timeoutMs: number) 
     try {
         await iframeMessenger.sendMessageToChild({
             message: {
-                type: MessageType.Ready,
+                type: MessageType.FrameReady,
             },
             iframeElement,
             timeoutMs,
@@ -33,7 +33,7 @@ async function waitForLoad(iframeElement: HTMLIFrameElement, timeoutMs: number) 
         await iframeLoadPromise.promise;
         await iframeMessenger.sendMessageToChild({
             message: {
-                type: MessageType.Ready,
+                type: MessageType.FrameReady,
             },
             iframeElement,
             timeoutMs,
@@ -99,6 +99,14 @@ export async function handleIframe({
         imageData,
         forcedFinalImageSize,
         sendSizeMessage: true,
+        timeoutMs,
+    });
+
+    await iframeMessenger.sendMessageToChild({
+        message: {
+            type: MessageType.ImageElementLoaded,
+        },
+        iframeElement,
         timeoutMs,
     });
 

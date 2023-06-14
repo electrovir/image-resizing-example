@@ -6,16 +6,18 @@ import {Dimensions} from '../augments/dimensions';
  * listening to its messages, and posting messages, both inside of the iframe and outside of it.
  */
 export enum MessageType {
-    Ready = 'ready',
+    /** Ready to receive further messages that is. */
+    FrameReady = 'frame-ready',
     SendSize = 'send-size',
     SendScale = 'set-scale',
     SendScalingMethod = 'set-scaling-method',
     ForceSize = 'force-size',
     SizeDetermined = 'size-determined',
+    ImageElementLoaded = 'image-element-loaded',
 }
 
 export type MessageData = {
-    [MessageType.Ready]: {
+    [MessageType.FrameReady]: {
         [MessageDirectionEnum.FromParent]: undefined;
         [MessageDirectionEnum.FromChild]: undefined;
     };
@@ -37,6 +39,10 @@ export type MessageData = {
     };
     [MessageType.SizeDetermined]: {
         [MessageDirectionEnum.FromParent]: Dimensions;
+        [MessageDirectionEnum.FromChild]: undefined;
+    };
+    [MessageType.ImageElementLoaded]: {
+        [MessageDirectionEnum.FromParent]: undefined;
         [MessageDirectionEnum.FromChild]: undefined;
     };
 };
