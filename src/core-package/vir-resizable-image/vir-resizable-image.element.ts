@@ -339,19 +339,27 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             defaultClickCover,
             (resolvedImageData) => {
                 if (
-                    !inputs.blockInteraction &&
-                    [
-                        ImageType.Html,
-                        ImageType.Video,
-                        ImageType.Audio,
-                        ImageType.Pdf,
-                    ].includes(resolvedImageData.imageType)
+                    /**
+                     * If set to false, prevents blocking of interaction. This is helpful for other
+                     * ImageType that is not interactive by default but needs interaction like
+                     * scrolling etc.
+                     */
+                    inputs.blockInteraction === false ||
+                    /** If unset or undefined default behavior is to check image type */
+                    (inputs.blockInteraction === undefined &&
+                        [
+                            ImageType.Html,
+                            ImageType.Video,
+                            ImageType.Audio,
+                            ImageType.Pdf,
+                        ].includes(resolvedImageData.imageType))
                 ) {
                     /**
                      * In this case the "image" is likely meant to be interactive, so don't block
                      * mouse interactions.
                      */
                     return '';
+                    /** Everything else should block interaction */
                 } else {
                     return defaultClickCover;
                 }
