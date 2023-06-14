@@ -24,6 +24,13 @@ import {
 } from './vir-resizable-image-inputs';
 import {defaultResizableImageState} from './vir-resizable-image-state';
 
+const imageTypesThatAllowInteraction: ReadonlyArray<ImageType> = [
+    ImageType.Html,
+    ImageType.Video,
+    ImageType.Audio,
+    ImageType.Pdf,
+] as const;
+
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: resizableImageElementTagName,
     stateInitStatic: defaultResizableImageState,
@@ -338,28 +345,15 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             state.imageData,
             defaultClickCover,
             (resolvedImageData) => {
-                if (
-                    /**
-                     * If set to false, prevents blocking of interaction. This is helpful for other
-                     * ImageType that is not interactive by default but needs interaction like
-                     * scrolling etc.
-                     */
+                const isInteractionAllowed =
+                    /** If set to false, all interaction will be allowed no matter what. */
                     inputs.blockInteraction === false ||
-                    /** If unset or undefined default behavior is to check image type */
-                    (inputs.blockInteraction === undefined &&
-                        [
-                            ImageType.Html,
-                            ImageType.Video,
-                            ImageType.Audio,
-                            ImageType.Pdf,
-                        ].includes(resolvedImageData.imageType))
-                ) {
-                    /**
-                     * In this case the "image" is likely meant to be interactive, so don't block
-                     * mouse interactions.
-                     */
+                    /** Default behavior is to allow interaction based on the image type. */
+                    (inputs.blockInteraction == undefined &&
+                        imageTypesThatAllowInteraction.includes(resolvedImageData.imageType));
+
+                if (isInteractionAllowed) {
                     return '';
-                    /** Everything else should block interaction */
                 } else {
                     return defaultClickCover;
                 }
