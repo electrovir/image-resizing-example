@@ -74,7 +74,6 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             height: 100%;
 
             position: relative;
-            transition: 100ms;
             z-index: 100;
         }
 
