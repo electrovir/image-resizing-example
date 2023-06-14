@@ -905,7 +905,7 @@ ${e.templateString}
                             ${Kt(async b=>{try{const S=await oo({min:c,max:l,host:r,iframeElement:b,imageData:v,forcedFinalImageSize:t.forcedFinalImageSize,forcedOriginalImageSize:u,timeoutMs:o});r[je]=S,i(new s.settled(!0)),r.classList.add(T.HideLoading)}catch(S){const $=j(S);if($ instanceof ut)return;console.error($),n({error:$}),i(new s.errored($))}})}
                         ></iframe>
                         <slot name="loaded"></slot>
-                    `),v=>{n({error:v}),i(new s.errored(j(v)))}),h=nt(e.imageData,dn,v=>!t.blockInteraction&&[y.Html,y.Video,y.Audio,y.Pdf].includes(v.imageType)?"":dn,()=>""),m=a?G`
+                    `),v=>{n({error:v}),i(new s.errored(j(v)))}),h=nt(e.imageData,dn,v=>t.blockInteraction===!1||t.blockInteraction===void 0&&[y.Html,y.Video,y.Audio,y.Pdf].includes(v.imageType)?"":dn,()=>""),m=a?G`
                   max-width: 100%;
                   max-height: 100%;
               `:u?G`
