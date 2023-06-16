@@ -31,6 +31,11 @@ const imageTypesThatAllowInteraction: ReadonlyArray<ImageType> = [
     ImageType.Pdf,
 ] as const;
 
+const imageTypesThatAllowScrolling: ReadonlyArray<ImageType> = [
+    ImageType.Text,
+    ImageType.Json,
+] as const;
+
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: resizableImageElementTagName,
     stateInitStatic: defaultResizableImageState,
@@ -284,6 +289,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                 resolvedImageData,
                                 inputs.extraHtml,
                                 inputs.htmlSizeQuerySelector,
+                                inputs.allowScrolling,
                             )}
                             ${onDomCreated(async (element) => {
                                 try {
@@ -343,7 +349,9 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                     inputs.blockInteraction === false ||
                     /** Default behavior is to allow interaction based on the image type. */
                     (inputs.blockInteraction == undefined &&
-                        imageTypesThatAllowInteraction.includes(resolvedImageData.imageType));
+                        imageTypesThatAllowInteraction.includes(resolvedImageData.imageType)) ||
+                    (inputs.allowScrolling &&
+                        imageTypesThatAllowScrolling.includes(resolvedImageData.imageType));
 
                 if (isInteractionAllowed) {
                     return '';

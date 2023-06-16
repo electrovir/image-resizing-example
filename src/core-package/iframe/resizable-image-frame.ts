@@ -11,6 +11,7 @@ export function generateIframeDoc(
     imageData: ResizableImageData,
     extraHtml: string | TemplateResult | undefined,
     htmlSizeQuerySelector: string | undefined,
+    allowScrolling: boolean | undefined,
 ): string {
     const placeholder = Math.random();
 
@@ -329,9 +330,18 @@ export function generateIframeDoc(
                                     (message.data.height - 2 * ${textPadding.y}) / oneLine,
                                 );
                                 const totalHeight = oneLine * totalLines;
+                                const scroll = ${allowScrolling ?? true};
                                 const textElement = document.querySelector('.text');
-                                textElement.style.height = totalHeight + 'px';
-                                textElement.style.setProperty('-webkit-line-clamp', totalLines);
+
+                                if (scroll) {
+                                    const textWrapperElement =
+                                        document.querySelector('.text-wrapper');
+                                    textWrapperElement.style.height = message.data.height + 'px';
+                                    textWrapperElement.style.setProperty('overflow-y', 'auto');
+                                } else {
+                                    textElement.style.height = totalHeight + 'px';
+                                    textElement.style.setProperty('-webkit-line-clamp', totalLines);
+                                }
                             }
 
                             document.documentElement.style.setProperty(
