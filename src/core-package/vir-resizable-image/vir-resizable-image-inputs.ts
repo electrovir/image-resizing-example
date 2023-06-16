@@ -30,8 +30,8 @@ export type VirResizableImageInputs = {
     blockAutoPlay?: boolean | undefined;
     /** Block interaction with images, even on HTML pages. */
     blockInteraction?: boolean | undefined;
-    /** Set to true to allow scrolling of scrollable image types. */
-    allowScrolling?: boolean | undefined;
+    /** Set to true to allow text scrolling of text-like image types. */
+    allowTextScrolling?: boolean | undefined;
     /** Set to true to disable lazy loading. */
     eagerLoading?: boolean | undefined;
     /**

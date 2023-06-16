@@ -289,7 +289,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                                 resolvedImageData,
                                 inputs.extraHtml,
                                 inputs.htmlSizeQuerySelector,
-                                inputs.allowScrolling,
+                                inputs.allowTextScrolling,
                             )}
                             ${onDomCreated(async (element) => {
                                 try {
@@ -350,7 +350,7 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                     /** Default behavior is to allow interaction based on the image type. */
                     (inputs.blockInteraction == undefined &&
                         imageTypesThatAllowInteraction.includes(resolvedImageData.imageType)) ||
-                    (inputs.allowScrolling &&
+                    (inputs.allowTextScrolling &&
                         imageTypesThatAllowScrolling.includes(resolvedImageData.imageType));
 
                 if (isInteractionAllowed) {
