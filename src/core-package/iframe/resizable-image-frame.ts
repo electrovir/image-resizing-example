@@ -11,7 +11,7 @@ export function generateIframeDoc(
     imageData: ResizableImageData,
     extraHtml: string | TemplateResult | undefined,
     htmlSizeQuerySelector: string | undefined,
-    allowTextScrolling: boolean | undefined,
+    allowScrolling: boolean,
 ): string {
     const placeholder = Math.random();
 
@@ -206,17 +206,23 @@ export function generateIframeDoc(
             function isImageLoaded() {
                 const image = document.querySelector('img');
 
-                return image.complete;
+                return image?.complete;
+            }
+
+            function isAudioLoaded() {
+                const audioElement = document.querySelector('audio');
+
+                return audioElement?.readyState >= 3;
             }
 
             const loadedGrabbers = {
                 ${ImageType.Svg}: () => true,
                 ${ImageType.Html}: () => true,
-                ${ImageType.Image}: () => true,
+                ${ImageType.Image}: () => isImageLoaded,
                 ${ImageType.Video}: isVideoLoaded,
                 ${ImageType.Text}: () => true,
                 ${ImageType.Json}: () => true,
-                ${ImageType.Audio}: isImageLoaded,
+                ${ImageType.Audio}: isAudioLoaded,
             };
 
             function isLoaded() {
@@ -290,6 +296,7 @@ export function generateIframeDoc(
                                     scaleDimensions.height +
                                     ')',
                             );
+                        document.querySelector('html').classList.add('scaled');
                         return sendMessageToParent();
                     }
                     case '${MessageType.SendScalingMethod}': {
@@ -330,15 +337,10 @@ export function generateIframeDoc(
                                     (message.data.height - 2 * ${textPadding.y}) / oneLine,
                                 );
                                 const totalHeight = oneLine * totalLines;
-                                const scroll = ${allowTextScrolling ?? true};
+                                const scroll = ${allowScrolling};
                                 const textElement = document.querySelector('.text');
 
-                                if (scroll) {
-                                    const textWrapperElement =
-                                        document.querySelector('.text-wrapper');
-                                    textWrapperElement.style.height = message.data.height + 'px';
-                                    textWrapperElement.style.setProperty('overflow-y', 'auto');
-                                } else {
+                                if (!scroll) {
                                     textElement.style.height = totalHeight + 'px';
                                     textElement.style.setProperty('-webkit-line-clamp', totalLines);
                                 }
@@ -385,7 +387,7 @@ export function generateIframeDoc(
 
     const htmlTemplate = html`
         <!DOCTYPE html>
-        <html class="image-type-${imageData.imageType}">
+        <html class="image-type-${imageData.imageType} ${allowScrolling ? 'allow-scrolling' : ''}">
             <head>
                 <style>
                     body,
@@ -401,6 +403,7 @@ export function generateIframeDoc(
                         display: flex;
                         justify-content: center;
                         align-items: center;
+                        overflow: hidden;
                     }
 
                     html.image-type-${ImageType.Image} img,
@@ -461,6 +464,21 @@ export function generateIframeDoc(
                             should be hidden.
                         */
                         padding-bottom: ${textPadding.y}px;
+                    }
+
+                    /*
+                        If the html body has been scaled then we don't want to allow scrolling.
+                    */
+                    html.allow-scrolling:not(.scaled) {
+                        overflow-y: auto;
+                    }
+
+                    /*
+                        If the html body has been scaled then we don't want to allow scrolling.
+                    */
+                    html.allow-scrolling:not(.scaled) body {
+                        max-height: unset;
+                        overflow: unset;
                     }
                 </style>
                 <script>

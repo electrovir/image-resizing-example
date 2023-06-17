@@ -1,3 +1,4 @@
+import {extractEventTarget} from '@augment-vir/browser';
 import {addPx, areJsonEqual, capitalizeFirstLetter, wait} from '@augment-vir/common';
 import {AsyncProp, assign, asyncProp, css, html, listen, renderAsync} from 'element-vir';
 import {DimensionConstraints, Dimensions, VirResizableImage} from '../../..';
@@ -28,7 +29,7 @@ export const VirExampleApp = defineVirElementNoInputs({
             promise: Promise<void> | undefined;
             lastSearch: Record<string, string> | undefined;
         },
-        allowTextScrolling: false,
+        allowScrolling: false,
     },
     hostClasses: {
         'vir-example-app-show-constraints': ({state}) => state.showConstraints,
@@ -249,7 +250,7 @@ export const VirExampleApp = defineVirElementNoInputs({
                         type="checkbox"
                         ?checked=${state.showConstraints}
                         ${listen('input', (event) => {
-                            const checkbox = event.currentTarget as HTMLInputElement;
+                            const checkbox = extractEventTarget(event, HTMLInputElement);
                             updateState({
                                 showConstraints: !!checkbox.checked,
                             });
@@ -262,11 +263,11 @@ export const VirExampleApp = defineVirElementNoInputs({
                 <label class="inline-label">
                     <input
                         type="checkbox"
-                        ?checked=${state.allowTextScrolling}
+                        ?checked=${state.allowScrolling}
                         ${listen('input', (event) => {
-                            const checkbox = event.currentTarget as HTMLInputElement;
+                            const checkbox = extractEventTarget(event, HTMLInputElement);
                             updateState({
-                                allowTextScrolling: !!checkbox.checked,
+                                allowScrolling: !!checkbox.checked,
                             });
                         })}
                     />
@@ -305,7 +306,7 @@ export const VirExampleApp = defineVirElementNoInputs({
                                     .value=${value}
                                     ${listen('input', (event) => {
                                         updateConstraints(
-                                            event.currentTarget as HTMLInputElement,
+                                            extractEventTarget(event, HTMLInputElement),
                                             boundary,
                                             axis,
                                         );
@@ -321,7 +322,7 @@ export const VirExampleApp = defineVirElementNoInputs({
                 })}
             </p>
             <div class="images-container">
-                ${renderImages(ensuredConstraints, state.imageUrls, state.allowTextScrolling)}
+                ${renderImages(ensuredConstraints, state.imageUrls, state.allowScrolling)}
             </div>
         `;
     },
@@ -330,7 +331,7 @@ export const VirExampleApp = defineVirElementNoInputs({
 function renderImages(
     constraints: DimensionConstraints,
     imageUrls: AsyncProp<ReadonlyArray<string>>,
-    allowTextScrolling: boolean | undefined,
+    allowScrolling: boolean | undefined,
 ) {
     return renderAsync(imageUrls, 'Loading...', (resolvedImageUrls) => {
         return sanitizeUrls(resolvedImageUrls).map((imageUrl) => {
@@ -350,7 +351,7 @@ function renderImages(
                                 imageUrl,
                                 max: constraints.max,
                                 min: constraints.min,
-                                allowTextScrolling,
+                                allowScrolling,
                             })}
                         ></${VirResizableImage}>
                     </a>

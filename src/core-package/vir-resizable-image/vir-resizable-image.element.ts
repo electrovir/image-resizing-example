@@ -32,9 +32,37 @@ const imageTypesThatAllowInteraction: ReadonlyArray<ImageType> = [
 ] as const;
 
 const imageTypesThatAllowScrolling: ReadonlyArray<ImageType> = [
+    ImageType.Html,
     ImageType.Text,
     ImageType.Json,
 ] as const;
+
+function shouldAllowInteraction({
+    blockInteractionInput,
+    imageType,
+    allowScrolling,
+}: {
+    blockInteractionInput: boolean | undefined;
+    imageType: ImageType;
+    allowScrolling: boolean | undefined;
+}): boolean {
+    /** Allow respect explicitly set boolean values for the block interaction input. */
+    if (typeof blockInteractionInput === 'boolean') {
+        return !blockInteractionInput;
+    }
+
+    /**
+     * If the block interaction input is not explicitly set to a boolean, the default behavior is as
+     * follows:
+     */
+    if (imageTypesThatAllowInteraction.includes(imageType)) {
+        return true;
+    } else if (allowScrolling && imageTypesThatAllowScrolling.includes(imageType)) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: resizableImageElementTagName,
@@ -280,16 +308,22 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
                         ></iframe>
                     `;
                 } else {
+                    const allowScrolling =
+                        shouldAllowInteraction({
+                            allowScrolling: inputs.allowScrolling,
+                            blockInteractionInput: inputs.blockInteraction,
+                            imageType: resolvedImageData.imageType,
+                        }) && !!inputs.allowScrolling;
+
                     return html`
                         <iframe
                             loading=${inputs.eagerLoading ? 'eager' : 'lazy'}
                             referrerpolicy="no-referrer"
-                            scrolling="no"
                             srcdoc=${generateIframeDoc(
                                 resolvedImageData,
                                 inputs.extraHtml,
                                 inputs.htmlSizeQuerySelector,
-                                inputs.allowTextScrolling,
+                                allowScrolling,
                             )}
                             ${onDomCreated(async (element) => {
                                 try {
@@ -344,14 +378,11 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             state.imageData,
             defaultClickCover,
             (resolvedImageData) => {
-                const isInteractionAllowed =
-                    /** If set to false, all interaction will be allowed no matter what. */
-                    inputs.blockInteraction === false ||
-                    /** Default behavior is to allow interaction based on the image type. */
-                    (inputs.blockInteraction == undefined &&
-                        imageTypesThatAllowInteraction.includes(resolvedImageData.imageType)) ||
-                    (inputs.allowTextScrolling &&
-                        imageTypesThatAllowScrolling.includes(resolvedImageData.imageType));
+                const isInteractionAllowed = shouldAllowInteraction({
+                    allowScrolling: inputs.allowScrolling,
+                    blockInteractionInput: inputs.blockInteraction,
+                    imageType: resolvedImageData.imageType,
+                });
 
                 if (isInteractionAllowed) {
                     return '';
