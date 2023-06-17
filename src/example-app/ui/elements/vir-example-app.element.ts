@@ -28,6 +28,7 @@ export const VirExampleApp = defineVirElementNoInputs({
             promise: Promise<void> | undefined;
             lastSearch: Record<string, string> | undefined;
         },
+        allowTextScrolling: false,
     },
     hostClasses: {
         'vir-example-app-show-constraints': ({state}) => state.showConstraints,
@@ -258,6 +259,21 @@ export const VirExampleApp = defineVirElementNoInputs({
                 </label>
             </p>
             <p>
+                <label class="inline-label">
+                    <input
+                        type="checkbox"
+                        ?checked=${state.allowTextScrolling}
+                        ${listen('input', (event) => {
+                            const checkbox = event.currentTarget as HTMLInputElement;
+                            updateState({
+                                allowTextScrolling: !!checkbox.checked,
+                            });
+                        })}
+                    />
+                    Allow text scrolling
+                </label>
+            </p>
+            <p>
                 ${(
                     [
                         'min',
@@ -304,7 +320,9 @@ export const VirExampleApp = defineVirElementNoInputs({
                     `;
                 })}
             </p>
-            <div class="images-container">${renderImages(ensuredConstraints, state.imageUrls)}</div>
+            <div class="images-container">
+                ${renderImages(ensuredConstraints, state.imageUrls, state.allowTextScrolling)}
+            </div>
         `;
     },
 });
@@ -312,6 +330,7 @@ export const VirExampleApp = defineVirElementNoInputs({
 function renderImages(
     constraints: DimensionConstraints,
     imageUrls: AsyncProp<ReadonlyArray<string>>,
+    allowTextScrolling: boolean | undefined,
 ) {
     return renderAsync(imageUrls, 'Loading...', (resolvedImageUrls) => {
         return sanitizeUrls(resolvedImageUrls).map((imageUrl) => {
@@ -331,6 +350,7 @@ function renderImages(
                                 imageUrl,
                                 max: constraints.max,
                                 min: constraints.min,
+                                allowTextScrolling,
                             })}
                         ></${VirResizableImage}>
                     </a>
