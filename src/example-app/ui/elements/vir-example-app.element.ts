@@ -22,7 +22,7 @@ export const VirExampleApp = defineVirElementNoInputs({
     tagName: 'vir-example-app',
     stateInitStatic: {
         showConstraints: true,
-        imageUrls: asyncProp(storedUrls.get()),
+        imageUrls: asyncProp({defaultValue: storedUrls.get()}),
         constraints: undefined as DimensionConstraints | undefined,
         router: virRouter,
         urlUpdateDebounce: {promise: undefined, lastSearch: undefined} as {

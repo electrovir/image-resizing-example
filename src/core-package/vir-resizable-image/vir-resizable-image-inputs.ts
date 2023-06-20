@@ -1,4 +1,3 @@
-import {getObjectTypedValues, JsonCompatibleValue} from '@augment-vir/common';
 import {TemplateResult} from 'lit';
 import {Dimensions} from '../augments/dimensions';
 
@@ -50,21 +49,3 @@ export type VirResizableImageInputs = {
 };
 
 export const defaultTimeoutMs: number = 10_000;
-
-const nonSerializableKeysObject: Readonly<
-    Required<{
-        [KeyName in keyof VirResizableImageInputs as Exclude<
-            NonNullable<VirResizableImageInputs[KeyName]>,
-            JsonCompatibleValue
-        > extends never
-            ? KeyName extends 'extraHtml'
-                ? KeyName
-                : never
-            : KeyName]: KeyName;
-    }>
-> = {
-    textTransformer: 'textTransformer',
-    extraHtml: 'extraHtml',
-};
-
-export const nonSerializableKeys = getObjectTypedValues(nonSerializableKeysObject);

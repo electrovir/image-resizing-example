@@ -1,4 +1,4 @@
-import {ensureError, omitObjectKeys, wait, wrapPromiseInTimeout} from '@augment-vir/common';
+import {ensureError} from '@augment-vir/common';
 import {
     css,
     defineElement,
@@ -15,54 +15,11 @@ import {Dimensions, clampDimensions, scaleToConstraints} from '../augments/dimen
 import {resizableImageElementTagName} from '../element-tag-name';
 import {handleIframe, handleLoadedImageSize} from '../iframe/handle-iframe';
 import {generateIframeDoc} from '../iframe/resizable-image-frame';
-import {ImageType, ResizableImageData, getImageData} from '../image-data';
+import {ImageType, ResizableImageData} from '../image-data';
+import {shouldAllowInteraction} from './image-interactions';
 import {MutatedClassesEnum} from './mutated-classes';
-import {
-    VirResizableImageInputs,
-    defaultTimeoutMs,
-    nonSerializableKeys,
-} from './vir-resizable-image-inputs';
+import {VirResizableImageInputs, defaultTimeoutMs} from './vir-resizable-image-inputs';
 import {defaultResizableImageState} from './vir-resizable-image-state';
-
-const imageTypesThatAllowInteraction: ReadonlyArray<ImageType> = [
-    ImageType.Html,
-    ImageType.Video,
-    ImageType.Audio,
-    ImageType.Pdf,
-] as const;
-
-const imageTypesThatAllowScrolling: ReadonlyArray<ImageType> = [
-    ImageType.Html,
-    ImageType.Text,
-    ImageType.Json,
-] as const;
-
-function shouldAllowInteraction({
-    blockInteractionInput,
-    imageType,
-    allowScrolling,
-}: {
-    blockInteractionInput: boolean | undefined;
-    imageType: ImageType;
-    allowScrolling: boolean | undefined;
-}): boolean {
-    /** Allow respect explicitly set boolean values for the block interaction input. */
-    if (typeof blockInteractionInput === 'boolean') {
-        return !blockInteractionInput;
-    }
-
-    /**
-     * If the block interaction input is not explicitly set to a boolean, the default behavior is as
-     * follows:
-     */
-    if (imageTypesThatAllowInteraction.includes(imageType)) {
-        return true;
-    } else if (allowScrolling && imageTypesThatAllowScrolling.includes(imageType)) {
-        return true;
-    } else {
-        return false;
-    }
-}
 
 export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     tagName: resizableImageElementTagName,
@@ -182,59 +139,19 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     renderCallback({state, inputs, updateState, host, dispatch, events}) {
         const timeoutMs = inputs.timeoutMs ?? defaultTimeoutMs;
 
-        const error: Error | undefined =
-            state.imageData instanceof Error ? state.imageData : state.error;
-
         updateState({
             imageData: {
-                createPromise: async () => {
-                    if (state.error) {
-                        updateState({error: undefined});
-                    }
-                    host.classList.remove(MutatedClassesEnum.HideLoading);
-                    dispatch(new events.settled(false));
-                    host.classList.remove(MutatedClassesEnum.VerticallyCenter);
-                    if (!inputs.imageUrl) {
-                        /**
-                         * Return a promise that doesn't resolve while the imageUrl is empty so that
-                         * we think we're in the loading state.
-                         */
-                        return new Promise<ResizableImageData>(() => {});
-                    }
-
-                    const imageDataInputs: Parameters<typeof getImageData>[0] = {
-                        imageUrl: inputs.imageUrl,
-                        blockAutoPlay: !!inputs.blockAutoPlay,
-                        textTransformer: inputs.textTransformer,
-                        allowPersistentCache: !inputs.blockPersistentCache,
-                    };
-
-                    let result: undefined | ResizableImageData;
-
-                    try {
-                        result = await wrapPromiseInTimeout(
-                            timeoutMs,
-                            getImageData(imageDataInputs),
-                        );
-                    } catch (error) {
-                        // try again
-                        await wait(1000);
-                        try {
-                            result = await getImageData(imageDataInputs);
-                        } catch (error) {
-                            throw error;
+                serializableTrigger: {
+                    ...inputs,
+                    timeoutMs,
+                    updateTriggered() {
+                        if (state.error) {
+                            updateState({error: undefined});
                         }
-                    }
-
-                    if (result) {
-                        return result;
-                    } else {
-                        const error = new Error('no image data result');
-                        throw error;
-                    }
-                },
-                trigger: {
-                    ...omitObjectKeys(inputs, nonSerializableKeys),
+                        host.classList.remove(MutatedClassesEnum.HideLoading);
+                        dispatch(new events.settled(false));
+                        host.classList.remove(MutatedClassesEnum.VerticallyCenter);
+                    },
                 },
             },
         });
@@ -392,6 +309,9 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
             },
             () => '',
         );
+
+        const error: Error | undefined =
+            state.imageData instanceof Error ? state.imageData : state.error;
 
         const frameConstraintStyles = error
             ? css`

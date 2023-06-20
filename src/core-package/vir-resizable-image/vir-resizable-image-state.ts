@@ -1,8 +1,57 @@
+import {wait, wrapPromiseInTimeout} from '@augment-vir/common';
 import {asyncProp} from 'element-vir';
-import {ResizableImageData} from '../image-data';
+import {ResizableImageData, getImageData} from '../image-data';
+import {VirResizableImageInputs} from './vir-resizable-image-inputs';
 
 export const defaultResizableImageState = {
-    imageData: asyncProp<ResizableImageData>(),
+    imageData: asyncProp({
+        async updateCallback(
+            inputs: VirResizableImageInputs & {
+                updateTriggered: () => void;
+                timeoutMs: number;
+            },
+        ): Promise<ResizableImageData> {
+            inputs.updateTriggered();
+            if (!inputs.imageUrl) {
+                /**
+                 * Return a promise that doesn't resolve while the imageUrl is empty so that we
+                 * think we're in the loading state.
+                 */
+                return new Promise<ResizableImageData>(() => {});
+            }
+
+            const imageDataInputs: Parameters<typeof getImageData>[0] = {
+                imageUrl: inputs.imageUrl,
+                blockAutoPlay: !!inputs.blockAutoPlay,
+                textTransformer: inputs.textTransformer,
+                allowPersistentCache: !inputs.blockPersistentCache,
+            };
+
+            let result: undefined | ResizableImageData;
+
+            try {
+                result = await wrapPromiseInTimeout(
+                    inputs.timeoutMs,
+                    getImageData(imageDataInputs),
+                );
+            } catch (error) {
+                // try again
+                await wait(1000);
+                try {
+                    result = await getImageData(imageDataInputs);
+                } catch (error) {
+                    throw error;
+                }
+            }
+
+            if (result) {
+                return result;
+            } else {
+                const error = new Error('no image data result');
+                throw error;
+            }
+        },
+    }),
     error: undefined as Error | undefined,
 };
 
