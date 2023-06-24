@@ -17,7 +17,6 @@ export function generateIframeDoc(
 
     const communicationScript = html`
         <script>
-            function doNothing() {}
             const imageType = '${imageData.imageType}';
             let forcedFinalImageSize = undefined;
 
@@ -482,6 +481,7 @@ export function generateIframeDoc(
                     }
                 </style>
                 <script>
+                    function doNothing() {}
                     var executeBeforeSizing = () => {
                         return undefined;
                     };
