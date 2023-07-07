@@ -1,10 +1,9 @@
 {
-    "extends": "virmator/base-configs/base-tsconfig.json",
     "compilerOptions": {
+        "module": "ES2020",
         "outDir": "./dist",
         "rootDir": "./src",
-        "target": "ES2021",
-        "module": "ES2020"
+        "target": "ES2021"
     },
     "exclude": [
         "./configs",
@@ -12,5 +11,6 @@
         "./dist",
         "./node_modules",
         "./test-files"
-    ]
+    ],
+    "extends": "virmator/base-configs/base-tsconfig.json"
 }
