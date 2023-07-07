@@ -2,6 +2,9 @@ import {createDeferredPromiseWrapper} from '@augment-vir/common';
 import {resizableImageElementTagName} from './element-tag-name';
 import {localForage} from './local-forage-shim';
 
+/** For quick debugging. */
+const enableCache = true;
+
 async function openResponseCache() {
     return await caches.open(resizableImageElementTagName);
 }
@@ -42,6 +45,8 @@ export async function loadImageData(
     imageUrl: string,
     allowPersistentCache: boolean,
 ): Promise<LoadedImageData> {
+    allowPersistentCache = enableCache && allowPersistentCache;
+
     if (!volatileImageDataCache.has(imageUrl)) {
         const deferredResponsePromise = createDeferredPromiseWrapper<LoadedImageData>();
 
@@ -95,6 +100,10 @@ export async function loadImageData(
 
     if (!cachedResponse) {
         throw new Error("Stored a cached response but couldn't find it afterwards.");
+    }
+
+    if (!enableCache) {
+        volatileImageDataCache.delete(imageUrl);
     }
 
     return cachedResponse;
