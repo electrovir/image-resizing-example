@@ -4,6 +4,9 @@ const windowVariablesToBlock: ReadonlyArray<keyof typeof window> = [
     'navigator',
     'sessionStorage',
     'Worker',
+    'top',
+    'parent',
+    'frameElement',
 ];
 const documentVariablesToBlock: ReadonlyArray<keyof Document> = ['cookie'];
 
