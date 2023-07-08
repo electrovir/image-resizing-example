@@ -113,12 +113,12 @@ function generateTemplateString({
     }
 }
 
-function formatText(text: string, imageType: ImageType) {
+function formatText(text: string, imageType: ImageType, removeConsoleLogs: boolean) {
     if (imageType === ImageType.Json) {
         try {
             return JSON.stringify(JSON.parse(text), null, 4);
         } catch (error) {}
-    } else if (imageType === ImageType.Html) {
+    } else if (imageType === ImageType.Html && removeConsoleLogs) {
         // strip out console logs
         return text.replaceAll(/console\.\w+/g, 'doNothing');
     }
@@ -130,11 +130,13 @@ export async function getImageData({
     blockAutoPlay,
     textTransformer = (input) => input,
     allowPersistentCache,
+    removeConsoleLogs,
 }: {
     imageUrl: string;
     blockAutoPlay: boolean;
     textTransformer?: ((originalText: string) => string) | undefined;
     allowPersistentCache: boolean;
+    removeConsoleLogs: boolean;
 }): Promise<ResizableImageData> {
     const loadedImageData: LoadedImageData = await loadImageData(imageUrl, allowPersistentCache);
 
@@ -144,7 +146,9 @@ export async function getImageData({
 
     const imageType = await determineImageType(loadedImageData.contentType, loadedImageData.text);
 
-    const imageText = textTransformer(formatText(loadedImageData.text, imageType));
+    const imageText = textTransformer(
+        formatText(loadedImageData.text, imageType, removeConsoleLogs),
+    );
 
     const templateString = generateTemplateString({
         imageText,

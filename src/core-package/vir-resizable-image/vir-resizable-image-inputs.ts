@@ -37,15 +37,17 @@ export type VirResizableImageInputs = {
      * Use this to transform the image's text before rendering it. This will only do anything for
      * text based images (like HTML, JSON, Text).
      */
-    textTransformer?: (text: string) => string;
+    textTransformer?: ((text: string) => string) | undefined;
     /** Timeout for each loading phase in milliseconds. */
-    timeoutMs?: number;
+    timeoutMs?: number | undefined;
     /**
      * Set this to true to block usage of the persistent cache, which lasts longer than a single
      * session. Settings this to true will negatively impact performance but will make sure images
      * are up to date.
      */
-    blockPersistentCache?: boolean;
+    blockPersistentCache?: boolean | undefined;
+    /** Set this to true to prevent removal of console method calls inside of scripts. */
+    allowConsoleLogs?: boolean | undefined;
 };
 
 export const defaultTimeoutMs: number = 10_000;

@@ -25,6 +25,7 @@ export const defaultResizableImageState = {
                 blockAutoPlay: !!inputs.blockAutoPlay,
                 textTransformer: inputs.textTransformer,
                 allowPersistentCache: !inputs.blockPersistentCache,
+                removeConsoleLogs: !inputs.allowConsoleLogs,
             };
 
             let result: undefined | ResizableImageData;
