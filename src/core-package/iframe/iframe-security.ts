@@ -20,7 +20,7 @@ const blockAccessScriptCode: string = Object.entries(globalBlocks)
             propertiesToBlock,
         ]) => {
             return propertiesToBlock.map((propertyToBlock) => {
-                return `delete ${globalName}['${propertyToBlock}'];`;
+                return `Object.defineProperty(${globalName}, '${propertyToBlock}', {value: undefined, writable: false, configurable: false, enumerable: false});`;
             });
         },
     )
