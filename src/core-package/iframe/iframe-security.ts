@@ -27,8 +27,6 @@ const blockAccessScriptCode: string = Object.entries(globalBlocks)
     .flat()
     .join('\n');
 
-console.log(blockAccessScriptCode);
-
 export const removeLocalAccessScript = /* HTML */ `
     <script>
         ${blockAccessScriptCode};
