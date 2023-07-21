@@ -6,7 +6,6 @@ import {TemplateResult} from 'lit';
 import {ImageType, ResizableImageData} from '../image-data';
 import {textPadding} from '../style-constants';
 import {MessageType} from './iframe-messenger';
-import {removeLocalAccessScript} from './iframe-security';
 
 export function generateIframeDoc(
     imageData: ResizableImageData,
@@ -389,7 +388,6 @@ export function generateIframeDoc(
         <!DOCTYPE html>
         <html class="image-type-${imageData.imageType} ${allowScrolling ? 'allow-scrolling' : ''}">
             <head>
-                ${removeLocalAccessScript}
                 <style>
                     body,
                     html {
