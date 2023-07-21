@@ -4,7 +4,7 @@ module.exports = {
     ...baseConfig,
     ignorePaths: [
         ...baseConfig.ignorePaths,
-        'public/examples/',
+        'www-static/examples/',
     ],
     words: [
         ...baseConfig.words,

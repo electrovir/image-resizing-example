@@ -23,6 +23,7 @@ async function waitForLoad(iframeElement: HTMLIFrameElement, timeoutMs: number) 
 
     try {
         await iframeMessenger.sendMessageToChild({
+            childOrigin: window.location.origin,
             message: {
                 type: MessageType.FrameReady,
             },
@@ -32,6 +33,7 @@ async function waitForLoad(iframeElement: HTMLIFrameElement, timeoutMs: number) 
     } catch (error) {
         await iframeLoadPromise.promise;
         await iframeMessenger.sendMessageToChild({
+            childOrigin: window.location.origin,
             message: {
                 type: MessageType.FrameReady,
             },
@@ -64,6 +66,7 @@ export async function handleIframe({
 
     if (forcedFinalImageSize) {
         await iframeMessenger.sendMessageToChild({
+            childOrigin: window.location.origin,
             message: {
                 type: MessageType.ForceSize,
                 data: forcedFinalImageSize,
@@ -77,14 +80,19 @@ export async function handleIframe({
         forcedOriginalImageSize ??
         (
             await iframeMessenger.sendMessageToChild({
+                childOrigin: window.location.origin,
                 message: {
                     type: MessageType.SendSize,
                 },
                 iframeElement,
                 timeoutMs,
                 verifyChildData(size) {
-                    return (
-                        !isNaN(size.width) && !isNaN(size.height) && !!size.width && !!size.height
+                    return !!(
+                        size &&
+                        !isNaN(size.width) &&
+                        !isNaN(size.height) &&
+                        size.width &&
+                        size.height
                     );
                 },
             })
@@ -103,6 +111,7 @@ export async function handleIframe({
     });
 
     await iframeMessenger.sendMessageToChild({
+        childOrigin: window.location.origin,
         message: {
             type: MessageType.ImageElementLoaded,
         },
@@ -180,6 +189,7 @@ export async function handleLoadedImageSize({
     if (sendSizeMessage) {
         if (ratio > 3) {
             await iframeMessenger.sendMessageToChild({
+                childOrigin: window.location.origin,
                 message: {
                     type: MessageType.SendScalingMethod,
                     data: 'pixelated',
@@ -189,6 +199,7 @@ export async function handleLoadedImageSize({
             });
         } else {
             await iframeMessenger.sendMessageToChild({
+                childOrigin: window.location.origin,
                 message: {
                     type: MessageType.SendScalingMethod,
                     data: 'default',
@@ -199,6 +210,7 @@ export async function handleLoadedImageSize({
         }
 
         await iframeMessenger.sendMessageToChild({
+            childOrigin: window.location.origin,
             message: {
                 type: MessageType.SizeDetermined,
                 data: newImageSize,
@@ -222,6 +234,7 @@ export async function handleLoadedImageSize({
                 height: ratio * forcedScales.height,
             };
             await iframeMessenger.sendMessageToChild({
+                childOrigin: window.location.origin,
                 message: {
                     type: MessageType.SendScale,
                     data: scales,
@@ -237,6 +250,7 @@ export async function handleLoadedImageSize({
 
                 const ratio = Math.min(widthRatio, heightRatio);
                 await iframeMessenger.sendMessageToChild({
+                    childOrigin: window.location.origin,
                     message: {
                         type: MessageType.SendScale,
                         data: {
