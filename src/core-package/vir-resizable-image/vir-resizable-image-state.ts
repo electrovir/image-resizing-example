@@ -1,17 +1,20 @@
 import {wait, wrapPromiseInTimeout} from '@augment-vir/common';
 import {asyncProp} from 'element-vir';
 import {ResizableImageData, getImageData} from '../image-data';
-import {VirResizableImageInputs} from './vir-resizable-image-inputs';
+import {SerializableImageInputs, VirResizableImageInputs} from './vir-resizable-image-inputs';
 
 export const defaultResizableImageState = {
     imageData: asyncProp({
         async updateCallback(
-            inputs: VirResizableImageInputs & {
-                updateTriggered: () => void;
+            inputs: SerializableImageInputs & {
                 timeoutMs: number;
             },
+            extraInputs: {
+                updateTriggered: () => void;
+                textTransformer: VirResizableImageInputs['textTransformer'];
+            },
         ): Promise<ResizableImageData> {
-            inputs.updateTriggered();
+            extraInputs.updateTriggered();
             if (!inputs.imageUrl) {
                 /**
                  * Return a promise that doesn't resolve while the imageUrl is empty so that we
@@ -23,7 +26,7 @@ export const defaultResizableImageState = {
             const imageDataInputs: Parameters<typeof getImageData>[0] = {
                 imageUrl: inputs.imageUrl,
                 blockAutoPlay: !!inputs.blockAutoPlay,
-                textTransformer: inputs.textTransformer,
+                textTransformer: extraInputs.textTransformer,
                 allowPersistentCache: !inputs.blockPersistentCache,
                 removeConsoleLogs: !inputs.allowConsoleLogs,
             };

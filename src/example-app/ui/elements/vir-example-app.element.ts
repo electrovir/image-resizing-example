@@ -1,6 +1,6 @@
 import {extractEventTarget} from '@augment-vir/browser';
 import {addPx, areJsonEqual, capitalizeFirstLetter, wait} from '@augment-vir/common';
-import {AsyncProp, assign, asyncProp, css, html, listen, renderAsync} from 'element-vir';
+import {AsyncObservableProperty, asyncProp, css, html, listen, renderAsync} from 'element-vir';
 import {DimensionConstraints, Dimensions, VirResizableImage} from '../../..';
 import {sanitizeUrls, storedUrls} from '../../data/indexed-db/stored-urls';
 import {virRouter} from '../../router/vir-router';
@@ -230,18 +230,13 @@ export const VirExampleApp = defineVirElementNoInputs({
                 <h1>resizable-image-element</h1>
             </a>
             <p>Add more image URLs to the input below:</p>
-            <${VirUrlInput}
-                ${assign(VirUrlInput, {
-                    urls: ensuredImageUrls,
-                })}
+            <${VirUrlInput.assign({
+                urls: ensuredImageUrls,
+            })}
                 ${listen(VirUrlInput.events.urlsChange, (event) => {
                     const newUrls = event.detail;
                     storedUrls.set(newUrls);
-                    updateState({
-                        imageUrls: {
-                            resolvedValue: event.detail,
-                        },
-                    });
+                    state.imageUrls.setResolvedValue(event.detail);
                 })}
             ></${VirUrlInput}>
             <p>
@@ -330,7 +325,7 @@ export const VirExampleApp = defineVirElementNoInputs({
 
 function renderImages(
     constraints: DimensionConstraints,
-    imageUrls: AsyncProp<ReadonlyArray<string>>,
+    imageUrls: AsyncObservableProperty<readonly string[], {}, undefined>,
     allowScrolling: boolean | undefined,
 ) {
     return renderAsync(imageUrls, 'Loading...', (resolvedImageUrls) => {
@@ -346,14 +341,12 @@ function renderImages(
             return html`
                 <div class="constraint-wrapper max" style=${maxStyle}>
                     <a target="_blank" rel="noopener noreferrer" href=${imageUrl}>
-                        <${VirResizableImage}
-                            ${assign(VirResizableImage, {
-                                imageUrl,
-                                max: constraints.max,
-                                min: constraints.min,
-                                allowScrolling,
-                            })}
-                        ></${VirResizableImage}>
+                        <${VirResizableImage.assign({
+                            imageUrl,
+                            max: constraints.max,
+                            min: constraints.min,
+                            allowScrolling,
+                        })}></${VirResizableImage}>
                     </a>
                     <div class="min-wrapper">
                         <div class="constraint-wrapper min" style=${minStyle}></div>

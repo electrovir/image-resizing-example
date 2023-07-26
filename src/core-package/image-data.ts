@@ -1,5 +1,4 @@
-import {convertTemplateToString} from '@augment-vir/element-vir';
-import {html} from 'element-vir';
+import {convertTemplateToString, html} from 'element-vir';
 import {isJson} from './augments/json';
 import {LoadedImageData, loadImageData} from './image-data-cache';
 

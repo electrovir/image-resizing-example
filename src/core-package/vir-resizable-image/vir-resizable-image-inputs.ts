@@ -50,4 +50,6 @@ export type VirResizableImageInputs = {
     allowConsoleLogs?: boolean | undefined;
 };
 
+export type SerializableImageInputs = Omit<VirResizableImageInputs, 'textTransformer'>;
+
 export const defaultTimeoutMs: number = 10_000;

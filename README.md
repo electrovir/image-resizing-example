@@ -32,24 +32,22 @@ Meant for use with `element-vir`:
 <!-- example-link: src/readme-examples/simple-usage.example.ts -->
 
 ```TypeScript
-import {assign, html} from 'element-vir';
+import {html} from 'element-vir';
 import {VirResizableImage} from '@electrovir/resizable-image-element';
 
 export function createTemplate() {
     return html`
-        <${VirResizableImage}
-            ${assign(VirResizableImage, {
-                imageUrl: 'https://example.com/my-image-url',
-                max: {
-                    height: 300,
-                    width: 600,
-                },
-                min: {
-                    height: 100,
-                    width: 200,
-                },
-            })}
-        ></${VirResizableImage}>
+        <${VirResizableImage.assign({
+            imageUrl: 'https://example.com/my-image-url',
+            max: {
+                height: 300,
+                width: 600,
+            },
+            min: {
+                height: 100,
+                width: 200,
+            },
+        })}></${VirResizableImage}>
     `;
 }
 ```
@@ -63,16 +61,14 @@ To customize the loading placeholder, use `slot="loading"` on a child element:
 <!-- example-link: src/readme-examples/loading-slot.example.ts -->
 
 ```TypeScript
-import {assign, html} from 'element-vir';
+import {html} from 'element-vir';
 import {VirResizableImage} from '@electrovir/resizable-image-element';
 
 export function createTemplate() {
     return html`
-        <${VirResizableImage}
-            ${assign(VirResizableImage, {
-                imageUrl: 'https://example.com/my-image-url',
-            })}
-        >
+        <${VirResizableImage.assign({
+            imageUrl: 'https://example.com/my-image-url',
+        })}>
             <div slot="loading">My custom loading</div>
         </${VirResizableImage}>
     `;

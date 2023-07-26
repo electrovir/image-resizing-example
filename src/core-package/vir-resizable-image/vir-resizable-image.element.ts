@@ -1,4 +1,4 @@
-import {ensureError} from '@augment-vir/common';
+import {ensureError, omitObjectKeys} from '@augment-vir/common';
 import {
     css,
     defineElement,
@@ -139,20 +139,16 @@ export const VirResizableImage = defineElement<VirResizableImageInputs>()({
     renderCallback({state, inputs, updateState, host, dispatch, events}) {
         const timeoutMs = inputs.timeoutMs ?? defaultTimeoutMs;
 
-        updateState({
-            imageData: {
-                serializableTrigger: {
-                    ...inputs,
-                    timeoutMs,
-                    updateTriggered() {
-                        if (state.error) {
-                            updateState({error: undefined});
-                        }
-                        host.classList.remove(MutatedClassesEnum.HideLoading);
-                        dispatch(new events.settled(false));
-                        host.classList.remove(MutatedClassesEnum.VerticallyCenter);
-                    },
-                },
+        state.imageData.updateTrigger(omitObjectKeys({...inputs, timeoutMs}, ['textTransformer']), {
+            textTransformer: inputs.textTransformer,
+
+            updateTriggered() {
+                if (state.error) {
+                    updateState({error: undefined});
+                }
+                host.classList.remove(MutatedClassesEnum.HideLoading);
+                dispatch(new events.settled(false));
+                host.classList.remove(MutatedClassesEnum.VerticallyCenter);
             },
         });
 
